@@ -31,30 +31,30 @@ export function answeredCount(answers) {
 // state = { drops, fateOverrides, placements, results }
 export function skillFate(skillName, isGap, state) {
   const { drops = {}, fateOverrides = {}, placements = {}, results = {} } = state;
-  if (drops[skillName]) return { label: 'No longer needed', cls: 'fate-dropped' };
-  if (isGap) return { label: 'New skill', cls: 'fate-new' };
+  if (drops[skillName]) return { label: 'Dropped', cls: 'fate-dropped' };
+  if (isGap) return { label: 'New Skill', cls: 'fate-new' };
   const ov = fateOverrides[skillName];
-  if (ov === 'deepens')        return { label: 'Grows in value', cls: 'fate-deepens' };
-  if (ov === 'persists')       return { label: 'Still needed',   cls: 'fate-persists' };
-  if (ov === 'potential-drop') return { label: 'At risk',        cls: 'fate-drop' };
+  if (ov === 'deepens')        return { label: 'Deepens',        cls: 'fate-deepens' };
+  if (ov === 'persists')       return { label: 'Persists',       cls: 'fate-persists' };
+  if (ov === 'potential-drop') return { label: 'Potential Drop', cls: 'fate-drop' };
   const placement = placements[skillName];
-  if (!placement || placement === 'pool') return { label: 'Not sorted yet', cls: 'fate-unassigned' };
-  if (placement === 'transversal') return { label: 'Used everywhere', cls: 'fate-foundational' };
+  if (!placement || placement === 'pool') return { label: 'Unassigned', cls: 'fate-unassigned' };
+  if (placement === 'transversal') return { label: 'Foundational', cls: 'fate-foundational' };
   const bucket = results[placement] || 'auto';
-  if (bucket === 'hl')   return { label: 'Grows in value', cls: 'fate-deepens' };
-  if (bucket === 'hitl') return { label: 'Still needed',   cls: 'fate-persists' };
-  return { label: 'At risk', cls: 'fate-drop' };
+  if (bucket === 'hl')   return { label: 'Deepens',  cls: 'fate-deepens' };
+  if (bucket === 'hitl') return { label: 'Persists', cls: 'fate-persists' };
+  return { label: 'Potential Drop', cls: 'fate-drop' };
 }
 
 // The suggested (non-override) outcome label for a placed skill.
 export function autoFateLabel(skillName, state) {
   const { placements = {}, results = {} } = state;
   const p = placements[skillName];
-  if (p === 'transversal') return 'Used everywhere';
+  if (p === 'transversal') return 'Foundational';
   const bkt = results[p] || 'auto';
-  if (bkt === 'hl') return 'Grows in value';
-  if (bkt === 'hitl') return 'Still needed';
-  return 'At risk';
+  if (bkt === 'hl') return 'Deepens';
+  if (bkt === 'hitl') return 'Persists';
+  return 'Potential Drop';
 }
 
 export function skillId(name) {

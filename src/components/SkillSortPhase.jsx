@@ -6,11 +6,11 @@ import { skillFate, autoFateLabel } from '../workshop/logic.js';
 import { usePlaceable } from '../workshop/usePlaceable.js';
 import { downloadReport } from '../workshop/report.js';
 
-const FATE_SORT = { 'No longer needed': 0, 'At risk': 1, 'Still needed': 2, 'Used everywhere': 2.5, 'Grows in value': 3, 'New skill': 4, 'Not sorted yet': 5 };
+const FATE_SORT = { Dropped: 0, 'Potential Drop': 1, Persists: 2, Foundational: 2.5, Deepens: 3, 'New Skill': 4, Unassigned: 5 };
 const CHANGE_ICON = {
-  'Grows in value': { c: '#1A2A4A', s: '↑' }, 'Still needed': { c: '#B85520', s: '→' },
-  'At risk': { c: '#9B7200', s: '↓' }, 'No longer needed': { c: '#7B2020', s: '✕' },
-  'New skill': { c: '#2C6E8A', s: '+' }, 'Used everywhere': { c: '#3D5A6B', s: '◆' }, 'Not sorted yet': { c: '#ccc', s: '·' },
+  Deepens: { c: '#1A2A4A', s: '↑' }, Persists: { c: '#B85520', s: '→' },
+  'Potential Drop': { c: '#9B7200', s: '↓' }, Dropped: { c: '#7B2020', s: '✕' },
+  'New Skill': { c: '#2C6E8A', s: '+' }, Foundational: { c: '#3D5A6B', s: '◆' }, Unassigned: { c: '#ccc', s: '·' },
 };
 
 export default function SkillSortPhase() {
@@ -73,7 +73,7 @@ export default function SkillSortPhase() {
         </div>
       )}
 
-      <div className="seq-bar">Most human involvement <div className="seq-line" /> Fully automated</div>
+      <div className="seq-bar">Most human involvement <div className="seq-line" /> Full Auto</div>
 
       <div id="ss-columns" style={{ gridTemplateColumns: `repeat(${sortedClusters.length}, 1fr)` }}>
         {sortedClusters.map((c) => {
@@ -81,7 +81,7 @@ export default function SkillSortPhase() {
           const bkt = BUCKETS[bucket];
           const placed = sortedSkills.filter((s) => placementOf(s.name) === c.id);
           const gaps = newSkills.filter((ns) => ns.clusterId === c.id);
-          const fateText = bucket === 'hl' ? 'Skills here grow in value' : bucket === 'hitl' ? 'Skills here stay needed' : 'Skills here may fade';
+          const fateText = bucket === 'hl' ? 'Skills here: Deepen' : bucket === 'hitl' ? 'Skills here: Persist' : 'Skills here: Potential Drop';
           return (
             <div key={c.id} className="cluster-col">
               <div className="cluster-col-header" style={{ background: bkt.color }}>
@@ -143,8 +143,8 @@ function Pill({ name, cat, def, gap, bucket, dropped, onDrop }) {
       <span style={{ flex: 1 }}>{name}</span>
       {needsConfirm && (
         <span className="pill-drop-confirm">
-          <input type="checkbox" checked={!!dropped} onChange={(e) => onDrop?.(e.target.checked)} title="Mark this skill as no longer needed" />
-          <label onClick={(e) => { e.preventDefault(); onDrop?.(!dropped); }}>Not needed</label>
+          <input type="checkbox" checked={!!dropped} onChange={(e) => onDrop?.(e.target.checked)} title="Confirm this skill can be dropped" />
+          <label onClick={(e) => { e.preventDefault(); onDrop?.(!dropped); }}>Drop</label>
         </span>
       )}
     </div>
@@ -195,10 +195,10 @@ function SummaryTable({ allEntries, fateState, placements, drops, fateOverrides,
                     <select className={`fate-select ${selCls}`} value={isDropped ? 'dropped' : override}
                       onChange={(e) => onOverride(s.name, e.target.value)}>
                       <option value="">Suggested: {autoLabel(s.name)}</option>
-                      <option value="deepens">Grows in value</option>
-                      <option value="persists">Still needed</option>
-                      <option value="potential-drop">At risk</option>
-                      <option value="dropped">No longer needed</option>
+                      <option value="deepens">Deepens</option>
+                      <option value="persists">Persists</option>
+                      <option value="potential-drop">Potential Drop</option>
+                      <option value="dropped">Dropped</option>
                     </select>
                   ) : (
                     <span className={`tb-badge ${fate.cls}`}>{fate.label}</span>
@@ -222,22 +222,22 @@ function BeforeAfter({ allEntries, fateState, drops, hasCategories }) {
   const counts = { deepens: 0, persists: 0, foundational: 0, drop: 0, dropped: 0, new: 0, unassigned: 0 };
   for (const s of allEntries) {
     const f = skillFate(s.name, s.gap, fateState).label;
-    if (f === 'Grows in value') counts.deepens++;
-    else if (f === 'Still needed') counts.persists++;
-    else if (f === 'Used everywhere') counts.foundational++;
-    else if (f === 'At risk') counts.drop++;
-    else if (f === 'No longer needed') counts.dropped++;
-    else if (f === 'New skill') counts.new++;
+    if (f === 'Deepens') counts.deepens++;
+    else if (f === 'Persists') counts.persists++;
+    else if (f === 'Foundational') counts.foundational++;
+    else if (f === 'Potential Drop') counts.drop++;
+    else if (f === 'Dropped') counts.dropped++;
+    else if (f === 'New Skill') counts.new++;
     else counts.unassigned++;
   }
   const stats = [];
-  if (counts.deepens) stats.push(['deepens', `↑ ${counts.deepens} growing in value`]);
-  if (counts.foundational) stats.push(['foundational', `◆ ${counts.foundational} used everywhere`]);
-  if (counts.persists) stats.push(['persists', `→ ${counts.persists} still needed`]);
-  if (counts.drop) stats.push(['drop', `↓ ${counts.drop} at risk`]);
-  if (counts.dropped) stats.push(['dropped', `✕ ${counts.dropped} no longer needed`]);
-  if (counts.new) stats.push(['new', `+ ${counts.new} new`]);
-  if (counts.unassigned) stats.push(['unassigned', `· ${counts.unassigned} not sorted`]);
+  if (counts.deepens) stats.push(['deepens', `↑ ${counts.deepens} Deepening`]);
+  if (counts.foundational) stats.push(['foundational', `◆ ${counts.foundational} Foundational`]);
+  if (counts.persists) stats.push(['persists', `→ ${counts.persists} Persisting`]);
+  if (counts.drop) stats.push(['drop', `↓ ${counts.drop} At Risk`]);
+  if (counts.dropped) stats.push(['dropped', `✕ ${counts.dropped} Dropped`]);
+  if (counts.new) stats.push(['new', `+ ${counts.new} New`]);
+  if (counts.unassigned) stats.push(['unassigned', `· ${counts.unassigned} Unplaced`]);
 
   return (
     <div className="ba-section">
@@ -251,7 +251,7 @@ function BeforeAfter({ allEntries, fateState, drops, hasCategories }) {
         <tbody>
           {sorted.map((s) => {
             const fate = skillFate(s.name, s.gap, fateState);
-            const ic = CHANGE_ICON[fate.label] || CHANGE_ICON['Not sorted yet'];
+            const ic = CHANGE_ICON[fate.label] || CHANGE_ICON.Unassigned;
             return (
               <tr key={s.name} className={drops[s.name] ? 'ba-dropped' : ''}>
                 <td><strong>{s.name}</strong>{s.gap && <><br /><em style={{ color: '#aaa', fontSize: 10.5 }}>added skill</em></>}</td>

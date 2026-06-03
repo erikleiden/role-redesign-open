@@ -2,12 +2,12 @@
 
 export const LEVEL = { hl: 4, hitl: 3, hotl: 2, auto: 1, none: 0 };
 
-// The four AI-involvement levels, plain-language. `desc` explains each in one sentence.
+// The four AI-involvement levels (framework names). `desc` is a plain-language helper line.
 export const BUCKETS = {
-  hl:   { label: 'Human-led',       color: '#7B2020', desc: 'A person does the work. AI can help prepare, but the person produces the result.' },
-  hitl: { label: 'AI-assisted',     color: '#B85520', desc: 'AI does a first pass; a person reviews and approves every result before it is used.' },
-  hotl: { label: 'AI-monitored',    color: '#9B7200', desc: 'AI does the work on its own; a person keeps watch and steps in when something looks off.' },
-  auto: { label: 'Fully automated', color: '#4a4a4a', desc: 'AI handles it start to finish; people only spot-check now and then.' },
+  hl:   { label: 'Human-Led',         color: '#7B2020', desc: 'A person does the work. AI can help prepare, but the person produces the result.' },
+  hitl: { label: 'Human-in-the-Loop', color: '#B85520', desc: 'AI does a first pass; a person reviews and approves every result before it is used.' },
+  hotl: { label: 'Human-on-the-Loop', color: '#9B7200', desc: 'AI does the work on its own; a person keeps watch and steps in when something looks off.' },
+  auto: { label: 'Full Auto',         color: '#4a4a4a', desc: 'AI handles it start to finish; people only spot-check now and then.' },
 };
 
 export const CELL_COLORS = {
@@ -17,12 +17,12 @@ export const CELL_COLORS = {
   none: { bg: '#D4D3CC', text: '#555' },
 };
 
-// Footer shown on each answer — what level of human involvement this answer requires (a floor).
+// Footer shown on each answer — the minimum level of human involvement this answer sets.
 export const BADGE_LABELS = {
-  hl:   '→ A person must do this',
-  hitl: '→ A person must check the work',
-  hotl: '→ A person must keep watch',
-  none: 'No requirement',
+  hl:   '→ Human-Led',
+  hitl: '→ HITL minimum',
+  hotl: '→ HOTL minimum',
+  none: 'No minimum set',
 };
 
 export const GAP_TIPS = {
@@ -45,7 +45,7 @@ export const CAT_ORDER = [
 ];
 
 export const ROUTING_QUESTIONS = [
-  { id: 'q1', label: 'Hands-on work', group: 1,
+  { id: 'q1', label: 'Physical Presence', group: 1,
     groupLabel: 'First: the deal-breakers',
     groupDesc: 'If any of these apply, a person needs to lead this work.',
     text: 'Does this work need someone physically present or hands-on?',
@@ -55,7 +55,7 @@ export const ROUTING_QUESTIONS = [
       { score: 3, label: 'Sometimes',       sub: 'Mostly can be done remotely; being there helps now and then.', min: 'hitl' },
       { score: 4, label: 'No',              sub: 'Can be done fully remotely with nothing lost.', min: 'none' },
     ] },
-  { id: 'q2', label: 'Rules & compliance', group: 1,
+  { id: 'q2', label: 'Regulatory Context', group: 1,
     groupLabel: 'First: the deal-breakers',
     groupDesc: 'If any of these apply, a person needs to lead this work.',
     text: 'What rules or laws apply to this work?',
@@ -65,7 +65,7 @@ export const ROUTING_QUESTIONS = [
       { score: 3, label: 'Best practices apply',   sub: 'Standards to follow, but no law requires a person to approve.', min: 'none' },
       { score: 4, label: 'No rules apply',         sub: 'Fully up to your discretion — no compliance to worry about.', min: 'none' },
     ] },
-  { id: 'q3', label: 'Can it be made into rules?', group: 1,
+  { id: 'q3', label: 'Codifiability', group: 1,
     groupLabel: 'First: the deal-breakers',
     groupDesc: 'If any of these apply, a person needs to lead this work.',
     text: 'Could this work be written down as clear, step-by-step rules?',
@@ -75,7 +75,7 @@ export const ROUTING_QUESTIONS = [
       { score: 3, label: 'Mostly',      sub: 'A clear process with only a few unusual cases.', min: 'none' },
       { score: 4, label: 'Completely',  sub: 'Step-by-step rules cover it, exceptions included.', min: 'none' },
     ] },
-  { id: 'q4', label: 'Human relationships', group: 2,
+  { id: 'q4', label: 'Relational Value', group: 2,
     groupLabel: 'Next: how much oversight',
     groupDesc: 'These set the least amount of human involvement this work needs.',
     text: 'Does this work depend on a personal, human relationship?',
@@ -85,7 +85,7 @@ export const ROUTING_QUESTIONS = [
       { score: 3, label: 'People prefer a human', sub: 'People will accept AI but would rather deal with a person.', min: 'hotl' },
       { score: 4, label: 'Not really',            sub: 'The relationship side does not matter here.', min: 'none' },
     ] },
-  { id: 'q5', label: 'Cost of a mistake', group: 2,
+  { id: 'q5', label: 'Error Stakes', group: 2,
     groupLabel: 'Next: how much oversight',
     groupDesc: 'These set the least amount of human involvement this work needs.',
     text: 'If a mistake slipped through unnoticed, how bad would it be?',
@@ -95,7 +95,7 @@ export const ROUTING_QUESTIONS = [
       { score: 3, label: 'Fixable', sub: 'Can be put right with some effort.', min: 'hotl' },
       { score: 4, label: 'Minor',  sub: 'Easy to catch and fix with little consequence.', min: 'none' },
     ] },
-  { id: 'q6', label: 'Easy to double-check?', group: 2,
+  { id: 'q6', label: 'Output Verifiability', group: 2,
     groupLabel: 'Next: how much oversight',
     groupDesc: 'These set the least amount of human involvement this work needs.',
     text: "Can you check AI's work without basically redoing it yourself?",
@@ -105,7 +105,7 @@ export const ROUTING_QUESTIONS = [
       { score: 3, label: 'Mostly',       sub: 'A quick review catches most problems.', min: 'hotl' },
       { score: 4, label: 'Easily',       sub: 'A simple check or the system itself confirms it is correct.', min: 'none' },
     ] },
-  { id: 'q7', label: 'Expertise needed', group: 3,
+  { id: 'q7', label: 'Required Expertise', group: 3,
     groupLabel: 'Finally: worth keeping a person involved?',
     groupDesc: 'These keep a person involved when the work builds skills or needs deep expertise.',
     text: 'How specialized is the know-how this work requires?',
@@ -115,7 +115,7 @@ export const ROUTING_QUESTIONS = [
       { score: 3, label: 'Capable employee', sub: 'Most trained employees can handle it.', min: 'hotl' },
       { score: 4, label: 'Entry-level',     sub: 'Quick to learn with little training.', min: 'none' },
     ] },
-  { id: 'q8', label: 'Builds skills & careers', group: 3,
+  { id: 'q8', label: 'Learning Value', group: 3,
     groupLabel: 'Finally: worth keeping a person involved?',
     groupDesc: 'These keep a person involved when the work builds skills or needs deep expertise.',
     text: 'Does doing this work help people build skills that matter for their careers?',

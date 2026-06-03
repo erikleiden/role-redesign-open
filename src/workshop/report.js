@@ -5,13 +5,13 @@ const BL = { hl: BUCKETS.hl.label, hitl: BUCKETS.hitl.label, hotl: BUCKETS.hotl.
 const BC = { hl: '#7B2020', hitl: '#B85520', hotl: '#9B7200', auto: '#4a4a4a' };
 
 const FATE_META = {
-  'Grows in value':   { color: '#1A2A4A', takeaway: 'A person stays central here, so this skill matters more, not less. Worth investing in as AI takes over the routine parts.' },
-  'Still needed':     { color: '#B85520', takeaway: 'Stays essential — a person reviews and owns every result, so keep this skill strong.' },
-  'At risk':          { color: '#9B7200', takeaway: 'May fade as AI does more of this work. Check whether real human judgment is still needed here.' },
-  'No longer needed': { color: '#7B2020', takeaway: 'AI can handle this. Consider shifting training investment toward skills that grow or stay needed.' },
-  'New skill':        { color: '#2C6E8A', takeaway: 'A gap to fill — this skill needs to be hired for or trained to support working alongside AI.' },
-  'Used everywhere':  { color: '#3D5A6B', takeaway: 'Cuts across the whole job. Worth investing in no matter how the work is split up.' },
-  'Not sorted yet':   { color: '#aaa',    takeaway: 'Not yet placed in the exercise — revisit this skill.' },
+  'Deepens':        { color: '#1A2A4A', takeaway: 'A person stays central here, so this skill matters more, not less. Worth investing in as AI takes over the routine parts.' },
+  'Persists':       { color: '#B85520', takeaway: 'Stays essential — a person reviews and owns every result, so keep this skill strong.' },
+  'Potential Drop': { color: '#9B7200', takeaway: 'May fade as AI does more of this work. Check whether real human judgment is still needed here.' },
+  'Dropped':        { color: '#7B2020', takeaway: 'AI can handle this. Consider shifting training investment toward skills that deepen or persist.' },
+  'New Skill':      { color: '#2C6E8A', takeaway: 'A gap to fill — this skill needs to be hired for or trained to support working alongside AI.' },
+  'Foundational':   { color: '#3D5A6B', takeaway: 'Cuts across the whole job. Worth investing in no matter how the work is split up.' },
+  'Unassigned':     { color: '#aaa',    takeaway: 'Not yet placed in the exercise — revisit this skill.' },
 };
 
 export function downloadReport(state, results, constraints) {
@@ -45,7 +45,7 @@ export function downloadReport(state, results, constraints) {
   for (const s of allEntries) {
     const fate = skillFate(s.name, s.gap, fateState);
     const isDropped = state.drops[s.name];
-    const fm = FATE_META[fate.label] || FATE_META['Not sorted yet'];
+    const fm = FATE_META[fate.label] || FATE_META['Unassigned'];
     skillRows += `<tr${isDropped ? ' class="dropped-row"' : ''}>
       <td><strong>${esc(s.name)}</strong>${s.gap ? '<br><em style="color:#aaa;font-size:10.5px">added skill</em>' : ''}</td>
       ${hasCategories ? `<td style="color:#777;font-size:11.5px">${esc(s.cat)}</td>` : ''}
@@ -108,11 +108,11 @@ export function downloadReport(state, results, constraints) {
   <div class="legend">
     <strong>What the outcomes mean:</strong>
     <ul>
-      <li><strong>Grows in value</strong> — A person stays central; invest in this skill.</li>
-      <li><strong>Still needed</strong> — Stays essential; AI helps, but a person owns the result.</li>
-      <li><strong>At risk</strong> — May fade; check whether real human judgment is still needed.</li>
-      <li><strong>No longer needed</strong> — AI can handle it; shift training elsewhere.</li>
-      <li><strong>Used everywhere</strong> — Cuts across the whole job; invest no matter what.</li>
+      <li><strong>Deepens</strong> — A person stays central; invest in this skill.</li>
+      <li><strong>Persists</strong> — Stays essential; AI helps, but a person owns the result.</li>
+      <li><strong>Potential Drop</strong> — May fade; check whether real human judgment is still needed.</li>
+      <li><strong>Dropped</strong> — AI can handle it; shift training elsewhere.</li>
+      <li><strong>Foundational</strong> — Cuts across the whole job; invest no matter what.</li>
     </ul>
   </div>
   <div class="footer">Role Redesign &nbsp;·&nbsp; Burning Glass Institute</div>
