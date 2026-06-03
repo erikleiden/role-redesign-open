@@ -62,6 +62,14 @@ function reducer(state, action) {
       };
     }
 
+    // Permanently remove a task from the role (pool or any cluster).
+    case 'DELETE_TASK':
+      return {
+        ...state,
+        poolTasks: state.poolTasks.filter((t) => t.id !== action.taskId),
+        clusters: state.clusters.map((c) => ({ ...c, tasks: c.tasks.filter((t) => t.id !== action.taskId) })),
+      };
+
     case 'RENAME_CLUSTER':
       return {
         ...state,

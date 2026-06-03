@@ -125,6 +125,8 @@ a{color:inherit}
 .task-card.dragging{opacity:.4}
 .task-card.task-selected{outline:2px solid var(--navy);outline-offset:1px;box-shadow:0 2px 10px rgba(26,42,74,.3)}
 .task-card .tc-grip{color:#ccc;flex-shrink:0;margin-top:1px}
+.task-del{background:none;border:none;color:#c9c7c0;cursor:pointer;padding:1px;border-radius:4px;display:flex;align-items:center;flex-shrink:0;margin-top:-1px}
+.task-del:hover{color:#7B2020;background:#F7ECEC}
 .cluster-box-zone.place-target,.cl-pool.place-target{outline:2px dashed var(--navy);outline-offset:-3px;background:#EEF3F8}
 
 /* ROUTING */

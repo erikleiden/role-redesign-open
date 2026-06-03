@@ -25,10 +25,20 @@ const ONET_DIR = process.argv[2] || path.resolve(REPO, '..', '_onet_build', 'db_
 const OUT_DIR = path.resolve(REPO, 'public', 'onet');
 const VERSION = '30.3';
 
-const MAX_CLUSTERS = 8;        // merge least-important groups beyond this into "Additional Tasks"
 const MAX_WORKER_SKILLS = 20;  // top worker skills by importance
 const MAX_SOFTWARE_SKILLS = 6; // top software-skill categories
 const SKILL_IM_MIN = 2.6;      // importance floor for worker skills (1–5 scale)
+
+// Suggested clusters group a role's tasks by O*NET work-activity DOMAIN — the four broad
+// branches of the work-activity taxonomy. This yields a tight 3–4 cluster default that the
+// user can split, merge, rename, or delete. (Tasks with no activity mapping → "Other Tasks".)
+const WA_DOMAINS = {
+  '4.A.1': { id: 'wa-info',     order: 1, label: 'Gathering & Evaluating Information' },
+  '4.A.2': { id: 'wa-analyze',  order: 2, label: 'Analyzing & Decision-Making' },
+  '4.A.3': { id: 'wa-produce',  order: 3, label: 'Performing & Producing Work' },
+  '4.A.4': { id: 'wa-interact', order: 4, label: 'Communicating & Coordinating' },
+  _other:  { id: 'wa-other',    order: 5, label: 'Other Tasks' },
+};
 
 const CAT_FOUNDATIONAL = 'Foundational & Leadership Skills';
 const CAT_CORE = 'Core Role-Specific Skills';
@@ -214,37 +224,17 @@ for (const occ of occRows) {
   const tasks = tasksByOcc.get(soc) || [];
   if (tasks.length === 0) continue; // skip occupations with no task data
 
-  // ── suggested clusters: group tasks by primary GWA ──
-  const groups = new Map(); // gwaId → { id, label, tasks[] }
+  // ── suggested clusters: group tasks by O*NET work-activity domain (≤4 broad groups) ──
+  const groups = new Map(); // domainId → { id, label, order, tasks[] }
   for (const t of tasks) {
-    const gwa = t.gwa;
-    const key = gwa || '_other';
-    if (!groups.has(key)) {
-      groups.set(key, {
-        id: gwa ? 'gwa_' + gwa.replace(/[^0-9a-z]/gi, '') : 'other',
-        gwa: key,
-        label: gwa ? (gwaName.get(gwa) || 'Other Tasks') : 'Other Tasks',
-        tasks: [],
-      });
-    }
-    groups.get(key).tasks.push({ id: t.id, text: t.text, importance: t.importance });
+    const dom = t.gwa ? t.gwa.slice(0, 5) : null; // '4.A.1'..'4.A.4'
+    const meta = WA_DOMAINS[dom] || WA_DOMAINS._other;
+    if (!groups.has(meta.id)) groups.set(meta.id, { id: meta.id, label: meta.label, order: meta.order, tasks: [] });
+    groups.get(meta.id).tasks.push({ id: t.id, text: t.text, importance: t.importance });
   }
-  // sort tasks within each cluster by importance desc
-  for (const g of groups.values()) {
-    g.tasks.sort((a, b) => (b.importance ?? 0) - (a.importance ?? 0));
-    g.weight = g.tasks.reduce((s, t) => s + (t.importance ?? 1), 0);
-  }
-  // order clusters by aggregate importance, then merge tail beyond MAX_CLUSTERS
-  let clusters = [...groups.values()].sort((a, b) => b.weight - a.weight);
-  if (clusters.length > MAX_CLUSTERS) {
-    const keep = clusters.slice(0, MAX_CLUSTERS - 1);
-    const tail = clusters.slice(MAX_CLUSTERS - 1);
-    const merged = { id: 'additional', label: 'Additional Tasks', tasks: [] };
-    for (const g of tail) merged.tasks.push(...g.tasks);
-    merged.tasks.sort((a, b) => (b.importance ?? 0) - (a.importance ?? 0));
-    clusters = [...keep, merged];
-  }
-  // strip helper fields
+  // sort tasks within each cluster by importance desc; order clusters by logical flow
+  for (const g of groups.values()) g.tasks.sort((a, b) => (b.importance ?? 0) - (a.importance ?? 0));
+  const clusters = [...groups.values()].sort((a, b) => a.order - b.order);
   const outClusters = clusters.map((g) => ({
     id: g.id,
     label: g.label,

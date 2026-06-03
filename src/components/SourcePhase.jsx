@@ -76,7 +76,7 @@ function OnetSearch({ dispatch }) {
         <Search size={16} className="search-icon" />
         <input
           autoFocus
-          placeholder="Search 900+ roles — e.g. “recruiter”, “forklift”, “financial analyst”…"
+          placeholder="Search 900+ roles by title — e.g. “registered nurse”, “financial analyst”, “machinist”"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -86,17 +86,22 @@ function OnetSearch({ dispatch }) {
         {grouped.map(([family, rows]) => (
           <div key={family}>
             <div className="role-family-label">{family}</div>
-            {rows.map((r) => (
-              <div key={r.soc} className="role-row" onClick={() => pick(r)}>
-                <div>
-                  <div className="rr-name">{r.title}{loadingSoc === r.soc ? ' — loading…' : ''}</div>
-                  {r.alt && r.alt.length > 0 && (
-                    <div className="rr-alt">also: {r.alt.slice(0, 3).join(', ')}</div>
-                  )}
+            {rows.map((r) => {
+              const q = query.trim().toLowerCase();
+              const titleMatches = q && r.title.toLowerCase().includes(q);
+              const matchedAlt = q && !titleMatches ? (r.alt || []).find((a) => a.toLowerCase().includes(q)) : null;
+              return (
+                <div key={r.soc} className="role-row" onClick={() => pick(r)}>
+                  <div>
+                    <div className="rr-name">{r.title}{loadingSoc === r.soc ? ' — loading…' : ''}</div>
+                    {matchedAlt
+                      ? <div className="rr-alt">matches “{matchedAlt}”</div>
+                      : (r.alt && r.alt.length > 0 && <div className="rr-alt">also: {r.alt.slice(0, 3).join(', ')}</div>)}
+                  </div>
+                  <div className="rr-soc">{r.soc}</div>
                 </div>
-                <div className="rr-soc">{r.soc}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ))}
         {results.length > 400 && (
