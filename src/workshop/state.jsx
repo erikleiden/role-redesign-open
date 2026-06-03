@@ -1,5 +1,6 @@
 import { createContext, useContext, useReducer, useEffect, useMemo } from 'react';
 import { computeResult } from './logic.js';
+import { suggestClusters, DEFAULT_CLUSTER_SETTINGS } from './suggest.js';
 
 const STORAGE_KEY = 'role-redesign-open-state';
 
@@ -9,6 +10,11 @@ const EMPTY = {
   clusters: [],                    // [{ id, label, description, tasks:[{id,text}] }]
   poolTasks: [],                   // unclustered tasks during the cluster step: [{id,text}]
   skills: [],                      // [{ name, cat, def }]
+  // O*NET task filtering (unused for custom roles):
+  taskCatalog: [],                 // full task list with metadata: [{id,text,core,score,domain}]
+  clusterSettings: null,           // { coreOnly, detail } — null for custom roles
+  removedTaskIds: [],              // tasks the user deleted (excluded from re-suggest)
+  clusterEdited: false,            // manual cluster edits made since last (re)suggest
   clusterIdx: 0,
   answers: {},                     // clusterId -> { q1:score, ... }
   placements: {},                  // skillName -> clusterId | 'pool' | 'transversal'
@@ -30,18 +36,27 @@ function reducer(state, action) {
       return { ...state, defsOpen: !state.defsOpen };
 
     // Load a fresh role (from O*NET or custom upload). Resets all downstream work.
-    case 'SET_ROLE':
-      return {
-        ...EMPTY,
-        phase: 'cluster',
-        role: action.role,
-        clusters: action.clusters,
-        poolTasks: action.poolTasks || [],
-        skills: action.skills,
-      };
+    case 'SET_ROLE': {
+      const base = { ...EMPTY, phase: 'cluster', role: action.role, skills: action.skills };
+      if (action.taskCatalog) {
+        // O*NET: build suggested clusters from the catalog using default filter settings.
+        const settings = { ...DEFAULT_CLUSTER_SETTINGS };
+        const { clusters, poolTasks } = suggestClusters(action.taskCatalog, settings, []);
+        return { ...base, taskCatalog: action.taskCatalog, clusterSettings: settings, removedTaskIds: [], clusters, poolTasks };
+      }
+      // Custom upload: tasks start in the pool; user builds clusters manually.
+      return { ...base, clusters: action.clusters || [], poolTasks: action.poolTasks || [], clusterSettings: null };
+    }
+
+    // Re-suggest O*NET clusters when the Core-only / detail controls change.
+    case 'SET_CLUSTER_SETTINGS': {
+      const settings = { ...state.clusterSettings, ...action.patch };
+      const { clusters, poolTasks } = suggestClusters(state.taskCatalog, settings, state.removedTaskIds);
+      return { ...state, clusterSettings: settings, clusters, poolTasks, clusterEdited: false };
+    }
 
     case 'SET_CLUSTERS':
-      return { ...state, clusters: action.clusters };
+      return { ...state, clusters: action.clusters, clusterEdited: true };
 
     // Move a task between the pool and clusters (clustering step).
     case 'MOVE_TASK': {
@@ -53,19 +68,22 @@ function reducer(state, action) {
       });
       if (!task) return state;
       if (action.target === 'pool') {
-        return { ...state, poolTasks: [...poolTasks, task], clusters };
+        return { ...state, clusterEdited: true, poolTasks: [...poolTasks, task], clusters };
       }
       return {
         ...state,
+        clusterEdited: true,
         poolTasks,
         clusters: clusters.map((c) => (c.id === action.target ? { ...c, tasks: [...c.tasks, task] } : c)),
       };
     }
 
-    // Permanently remove a task from the role (pool or any cluster).
+    // Permanently remove a task from the role (pool or any cluster). Stays removed across re-suggest.
     case 'DELETE_TASK':
       return {
         ...state,
+        clusterEdited: true,
+        removedTaskIds: state.removedTaskIds.includes(action.taskId) ? state.removedTaskIds : [...state.removedTaskIds, action.taskId],
         poolTasks: state.poolTasks.filter((t) => t.id !== action.taskId),
         clusters: state.clusters.map((c) => ({ ...c, tasks: c.tasks.filter((t) => t.id !== action.taskId) })),
       };
@@ -73,12 +91,13 @@ function reducer(state, action) {
     case 'RENAME_CLUSTER':
       return {
         ...state,
+        clusterEdited: true,
         clusters: state.clusters.map((c) => (c.id === action.clusterId ? { ...c, label: action.label } : c)),
       };
 
     case 'ADD_CLUSTER': {
       const id = 'cl_' + Date.now();
-      return { ...state, clusters: [...state.clusters, { id, label: '', description: '', tasks: [] }] };
+      return { ...state, clusterEdited: true, clusters: [...state.clusters, { id, label: '', description: '', tasks: [] }] };
     }
 
     case 'DELETE_CLUSTER': {
@@ -86,6 +105,7 @@ function reducer(state, action) {
       if (!dead) return state;
       return {
         ...state,
+        clusterEdited: true,
         poolTasks: [...state.poolTasks, ...dead.tasks],
         clusters: state.clusters.filter((c) => c.id !== action.clusterId),
       };

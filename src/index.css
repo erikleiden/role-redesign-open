@@ -105,6 +105,18 @@ a{color:inherit}
 .cluster-step-bar .csb-info strong{color:var(--navy)}
 .cluster-add-btn{background:#F5F4F2;border:1px dashed #aaa;color:#555;font-size:12px;font-weight:600;padding:7px 13px;border-radius:6px;cursor:pointer;white-space:nowrap}
 .cluster-add-btn:hover{border-color:#666;color:#333}
+.task-filter-bar{background:#fff;border-radius:10px;padding:11px 18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.07);display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.task-filter-bar .tf-check{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--navy);cursor:pointer}
+.task-filter-bar .tf-check input{width:15px;height:15px;cursor:pointer}
+.tf-seg-wrap{display:flex;align-items:center;gap:8px}
+.tf-seg-label{font-size:12.5px;font-weight:600;color:var(--navy)}
+.tf-seg{display:flex;border:1px solid #d8d6d2;border-radius:7px;overflow:hidden}
+.tf-seg button{background:#F5F4F2;border:none;border-right:1px solid #d8d6d2;padding:5px 14px;font-size:12px;font-weight:600;color:#666;cursor:pointer;transition:all .12s}
+.tf-seg button:last-child{border-right:none}
+.tf-seg button.active{background:var(--navy);color:#fff}
+.tf-seg button:not(.active):hover{background:#ebeae7}
+.tf-help{color:#bbb;font-size:12px;cursor:help}
+.tf-count{font-size:11.5px;color:#999;margin-left:auto;white-space:nowrap}
 .cl-pool-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#888;margin:4px 0 8px}
 .cl-pool{background:#fff;border:2px dashed #C4C3BD;border-radius:10px;padding:12px;min-height:60px;display:flex;flex-direction:column;gap:6px;margin-bottom:18px;transition:background .12s,border-color .12s}
 .cl-pool.drag-over{border-color:#888;background:#F5F4F2}

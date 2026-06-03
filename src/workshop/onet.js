@@ -20,20 +20,17 @@ export async function loadOnetMeta() {
   return null;
 }
 
-// Returns a payload ready for dispatch({type:'SET_ROLE', ...})
+// Returns a payload ready for dispatch({type:'SET_ROLE', ...}).
+// O*NET roles ship a task catalog; the reducer builds suggested clusters from it.
 export async function loadOnetRole(soc) {
   const res = await fetch(`${BASE}onet/${soc}.json`);
   if (!res.ok) throw new Error(`Could not load occupation ${soc}.`);
   const data = await res.json();
   return {
     role: { name: data.title, soc: data.soc, source: 'onet', description: data.description },
-    clusters: data.clusters.map((c) => ({
-      id: c.id,
-      label: c.label,
-      description: c.description || '',
-      tasks: c.tasks.map((t) => ({ id: String(t.id), text: t.text })),
+    taskCatalog: data.tasks.map((t) => ({
+      id: String(t.id), text: t.text, core: !!t.core, score: t.score ?? 0, domain: t.domain || 'wa-other',
     })),
-    poolTasks: [], // O*NET roles arrive pre-clustered
     skills: data.skills,
   };
 }

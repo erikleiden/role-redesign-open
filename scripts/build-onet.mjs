@@ -126,10 +126,23 @@ for (const r of workActivities) {
 
 // task importance: (soc|taskId) → IM value
 const taskIM = new Map();
+// task frequency: (soc|taskId) → expected frequency index (1–7) from the FT distribution.
+// FT categories run 1 (yearly or less) → 7 (hourly or more); each row is the % of incumbents
+// in that bin. Weighted-average the category ⇒ a "how often / how recurring" score.
+const ftAccum = new Map(); // key → { wsum, total }
 for (const r of taskRatingRows) {
-  if (r['Scale ID'] !== 'IM') continue;
-  taskIM.set(r['O*NET-SOC Code'] + '|' + r['Task ID'], num(r['Data Value']));
+  const key = r['O*NET-SOC Code'] + '|' + r['Task ID'];
+  if (r['Scale ID'] === 'IM') { taskIM.set(key, num(r['Data Value'])); continue; }
+  if (r['Scale ID'] === 'FT') {
+    const cat = parseInt(r['Category'], 10);
+    const val = num(r['Data Value']);
+    if (!cat || val == null) continue;
+    const a = ftAccum.get(key) || { wsum: 0, total: 0 };
+    a.wsum += cat * val; a.total += val;
+    ftAccum.set(key, a);
+  }
 }
+const freqIndex = (key) => { const a = ftAccum.get(key); return a && a.total > 0 ? a.wsum / a.total : null; };
 
 // (soc|taskId) → primary GWA id  (first DWA mapping wins)
 const taskPrimaryGwa = new Map();
@@ -224,23 +237,23 @@ for (const occ of occRows) {
   const tasks = tasksByOcc.get(soc) || [];
   if (tasks.length === 0) continue; // skip occupations with no task data
 
-  // ── suggested clusters: group tasks by O*NET work-activity domain (≤4 broad groups) ──
-  const groups = new Map(); // domainId → { id, label, order, tasks[] }
-  for (const t of tasks) {
-    const dom = t.gwa ? t.gwa.slice(0, 5) : null; // '4.A.1'..'4.A.4'
-    const meta = WA_DOMAINS[dom] || WA_DOMAINS._other;
-    if (!groups.has(meta.id)) groups.set(meta.id, { id: meta.id, label: meta.label, order: meta.order, tasks: [] });
-    groups.get(meta.id).tasks.push({ id: t.id, text: t.text, importance: t.importance });
-  }
-  // sort tasks within each cluster by importance desc; order clusters by logical flow
-  for (const g of groups.values()) g.tasks.sort((a, b) => (b.importance ?? 0) - (a.importance ?? 0));
-  const clusters = [...groups.values()].sort((a, b) => a.order - b.order);
-  const outClusters = clusters.map((g) => ({
-    id: g.id,
-    label: g.label,
-    description: '',
-    tasks: g.tasks.map((t) => ({ id: t.id, text: t.text })),
-  }));
+  // ── task catalog: every task with the metadata the app needs to suggest/filter clusters ──
+  //   core   : Task Type === 'Core' (the central duties; Supplemental are peripheral)
+  //   score  : importance × frequency-index — ranks "central AND recurring" tasks first
+  //   domain : work-activity domain id (wa-info / wa-analyze / wa-produce / wa-interact / wa-other)
+  const tasksOut = tasks.map((t) => {
+    const key = soc + '|' + t.id;
+    const im = t.importance;
+    const fi = freqIndex(key);
+    const domId = t.gwa ? (WA_DOMAINS[t.gwa.slice(0, 5)]?.id || 'wa-other') : 'wa-other';
+    return {
+      id: t.id,
+      text: t.text,
+      core: (t.type || '').trim() === 'Core',
+      score: Math.round(((im ?? 3) * (fi ?? 4)) * 10) / 10,
+      domain: domId,
+    };
+  });
 
   // ── skills (capped < 30) ──
   const workerRaw = [...(essentialByOcc.get(soc) || []), ...(transferableByOcc.get(soc) || [])]
@@ -268,7 +281,7 @@ for (const occ of occRows) {
   const out = {
     soc, title, description,
     source: 'onet', version: VERSION,
-    clusters: outClusters,
+    tasks: tasksOut,
     skills,
   };
   fs.writeFileSync(path.join(OUT_DIR, `${soc}.json`), JSON.stringify(out));

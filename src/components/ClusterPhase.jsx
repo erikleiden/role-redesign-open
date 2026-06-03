@@ -2,6 +2,13 @@ import { useMemo, useState } from 'react';
 import { Plus, Trash2, GripVertical, X } from 'lucide-react';
 import { useWorkshop } from '../workshop/state.jsx';
 import { usePlaceable } from '../workshop/usePlaceable.js';
+import { taskCounts } from '../workshop/suggest.js';
+
+const DETAIL_OPTS = [
+  { key: 'few', label: 'Few' },
+  { key: 'standard', label: 'Standard' },
+  { key: 'all', label: 'All' },
+];
 
 export default function ClusterPhase() {
   const { state, dispatch } = useWorkshop();
@@ -34,6 +41,15 @@ export default function ClusterPhase() {
     dispatch({ type: 'SET_PHASE', phase: 'routing' });
   }
 
+  const isOnet = state.role?.source === 'onet' && state.taskCatalog?.length > 0;
+  const settings = state.clusterSettings;
+  function changeSettings(patch) {
+    if (state.clusterEdited &&
+        !window.confirm('Re-suggesting rebuilds the clusters from O*NET. Your renames, moves, and added clusters will be reset (deleted tasks stay removed). Continue?')) return;
+    dispatch({ type: 'SET_CLUSTER_SETTINGS', patch });
+  }
+  const counts = isOnet ? taskCounts(state.taskCatalog, settings, state.removedTaskIds) : null;
+
   const totalTasks = poolTasks.length + clusters.reduce((s, c) => s + c.tasks.length, 0);
 
   return (
@@ -49,6 +65,26 @@ export default function ClusterPhase() {
         </div>
         <button className="cluster-add-btn" onClick={() => dispatch({ type: 'ADD_CLUSTER' })}><Plus size={13} style={{ verticalAlign: '-2px' }} /> Add cluster</button>
       </div>
+
+      {isOnet && settings && (
+        <div className="task-filter-bar">
+          <label className="tf-check">
+            <input type="checkbox" checked={settings.coreOnly} onChange={(e) => changeSettings({ coreOnly: e.target.checked })} />
+            Core tasks only
+            <span className="tf-help" title="Show only O*NET “Core” tasks — the central duties — and hide peripheral “Supplemental” ones.">ⓘ</span>
+          </label>
+          <div className="tf-seg-wrap">
+            <span className="tf-seg-label">Detail</span>
+            <div className="tf-seg">
+              {DETAIL_OPTS.map((o) => (
+                <button key={o.key} className={settings.detail === o.key ? 'active' : ''} onClick={() => changeSettings({ detail: o.key })}>{o.label}</button>
+              ))}
+            </div>
+            <span className="tf-help" title="How many tasks to keep per cluster, ranked by importance × how often the task is performed. Few = top 3, Standard = top 6, All = every task.">ⓘ</span>
+          </div>
+          {counts && <span className="tf-count">showing {counts.shown} of {counts.available} O*NET tasks</span>}
+        </div>
+      )}
 
       <div className="cl-pool-label">
         Unclustered tasks {poolTasks.length === 0 ? '— all placed ✓' : `(${poolTasks.length})`}
