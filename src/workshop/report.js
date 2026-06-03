@@ -1,17 +1,17 @@
-import { CAT_ORDER } from './config.js';
+import { CAT_ORDER, BUCKETS } from './config.js';
 import { skillFate, esc } from './logic.js';
 
-const BL = { hl: 'Human-Led', hitl: 'Human-in-the-Loop (HITL)', hotl: 'Human-on-the-Loop (HOTL)', auto: 'Full Auto' };
+const BL = { hl: BUCKETS.hl.label, hitl: BUCKETS.hitl.label, hotl: BUCKETS.hotl.label, auto: BUCKETS.auto.label };
 const BC = { hl: '#7B2020', hitl: '#B85520', hotl: '#9B7200', auto: '#4a4a4a' };
 
 const FATE_META = {
-  'Deepens':        { color: '#1A2A4A', takeaway: 'Human expertise becomes the key differentiator here — this skill is worth investing in as AI takes over routine work.' },
-  'Persists':       { color: '#B85520', takeaway: 'Remains essential with AI in the loop — workers still own the output and must review every result.' },
-  'Potential Drop': { color: '#9B7200', takeaway: 'At risk of automation — confirm whether meaningful human judgment is still required once AI handles this work.' },
-  'Dropped':        { color: '#7B2020', takeaway: 'Confirmed automatable — consider redirecting development investment to skills that deepen or persist.' },
-  'New Skill':      { color: '#2C6E8A', takeaway: 'Identified as a gap — this skill needs to be built or acquired to support the team\'s AI-augmented workflow.' },
-  'Foundational':   { color: '#3D5A6B', takeaway: 'Cross-cutting — applies across all task clusters. Prioritize for development regardless of AI adoption; these skills enable everything else.' },
-  'Unassigned':     { color: '#aaa',    takeaway: 'Not yet placed in the skill sort exercise — revisit this skill.' },
+  'Grows in value':   { color: '#1A2A4A', takeaway: 'A person stays central here, so this skill matters more, not less. Worth investing in as AI takes over the routine parts.' },
+  'Still needed':     { color: '#B85520', takeaway: 'Stays essential — a person reviews and owns every result, so keep this skill strong.' },
+  'At risk':          { color: '#9B7200', takeaway: 'May fade as AI does more of this work. Check whether real human judgment is still needed here.' },
+  'No longer needed': { color: '#7B2020', takeaway: 'AI can handle this. Consider shifting training investment toward skills that grow or stay needed.' },
+  'New skill':        { color: '#2C6E8A', takeaway: 'A gap to fill — this skill needs to be hired for or trained to support working alongside AI.' },
+  'Used everywhere':  { color: '#3D5A6B', takeaway: 'Cuts across the whole job. Worth investing in no matter how the work is split up.' },
+  'Not sorted yet':   { color: '#aaa',    takeaway: 'Not yet placed in the exercise — revisit this skill.' },
 };
 
 export function downloadReport(state, results, constraints) {
@@ -23,7 +23,7 @@ export function downloadReport(state, results, constraints) {
   let taskRows = '';
   for (const c of clusters) {
     const bucket = results[c.id] || 'auto';
-    const constraint = constraints[c.id]?.label || 'None — defaults to Full Auto';
+    const constraint = constraints[c.id]?.label || 'Nothing requires a person';
     taskRows += `<tr>
       <td><strong>${esc(c.label)}</strong>${c.description ? `<br><span style="color:#999;font-size:11px">${esc(c.description)}</span>` : ''}</td>
       <td><span class="bucket-badge" style="background:${BC[bucket]}">${BL[bucket]}</span></td>
@@ -38,16 +38,16 @@ export function downloadReport(state, results, constraints) {
   });
   const allEntries = [
     ...sortedSkills.map((s) => ({ name: s.name, cat: s.cat, gap: false })),
-    ...state.newSkills.map((ns) => ({ name: ns.name, cat: 'Gap Skill (added)', gap: true })),
+    ...state.newSkills.map((ns) => ({ name: ns.name, cat: 'Added skill', gap: true })),
   ];
 
   let skillRows = '';
   for (const s of allEntries) {
     const fate = skillFate(s.name, s.gap, fateState);
     const isDropped = state.drops[s.name];
-    const fm = FATE_META[fate.label] || FATE_META['Unassigned'];
+    const fm = FATE_META[fate.label] || FATE_META['Not sorted yet'];
     skillRows += `<tr${isDropped ? ' class="dropped-row"' : ''}>
-      <td><strong>${esc(s.name)}</strong>${s.gap ? '<br><em style="color:#aaa;font-size:10.5px">gap skill</em>' : ''}</td>
+      <td><strong>${esc(s.name)}</strong>${s.gap ? '<br><em style="color:#aaa;font-size:10.5px">added skill</em>' : ''}</td>
       ${hasCategories ? `<td style="color:#777;font-size:11.5px">${esc(s.cat)}</td>` : ''}
       <td style="white-space:nowrap"><span class="fate-badge" style="background:${fm.color}">${fate.label}</span></td>
       <td style="color:#555;font-size:11.5px">${fm.takeaway}</td>
@@ -55,12 +55,12 @@ export function downloadReport(state, results, constraints) {
   }
 
   const sourceNote = state.role?.source === 'onet'
-    ? `O*NET role${state.role?.soc ? ` (${esc(state.role.soc)})` : ''}`
-    : 'Custom role (employer-provided tasks & skills)';
+    ? `Built-in role${state.role?.soc ? ` · O*NET ${esc(state.role.soc)}` : ''}`
+    : 'Your own tasks & skills';
 
   const html = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8">
-<title>AI Routing Workshop — ${esc(role)}</title>
+<title>Role Redesign Summary — ${esc(role)}</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Segoe UI',Arial,sans-serif;max-width:960px;margin:40px auto;padding:0 24px;color:#1a1a1a;font-size:13px;line-height:1.5}
@@ -89,33 +89,33 @@ export function downloadReport(state, results, constraints) {
 </style></head>
 <body>
 <div class="rpt-header">
-  <h1>AI Routing Workshop Report</h1>
+  <h1>Role Redesign Summary</h1>
   <div class="meta">${esc(role)} &nbsp;·&nbsp; ${sourceNote} &nbsp;·&nbsp; Generated ${date}</div>
 </div>
 <div class="rpt-body">
-  <h2>Task Cluster Routings</h2>
+  <h2>AI Level by Task Group</h2>
   <table>
-    <thead><tr><th>Cluster</th><th>Routing Decision</th><th>Binding Constraint</th></tr></thead>
+    <thead><tr><th>Task group</th><th>Suggested AI level</th><th>Main reason</th></tr></thead>
     <tbody>${taskRows}</tbody>
   </table>
 
-  <h2>Skill Implications</h2>
+  <h2>What Happens to Each Skill</h2>
   <table>
-    <thead><tr><th>Skill</th>${hasCategories ? '<th>Category</th>' : ''}<th>Fate</th><th>Takeaway</th></tr></thead>
+    <thead><tr><th>Skill</th>${hasCategories ? '<th>Category</th>' : ''}<th>What happens</th><th>What to do</th></tr></thead>
     <tbody>${skillRows}</tbody>
   </table>
 
   <div class="legend">
-    <strong>How to read skill fates:</strong>
+    <strong>What the outcomes mean:</strong>
     <ul>
-      <li><strong>Deepens</strong> — Human expertise is the differentiator; invest in development of this skill.</li>
-      <li><strong>Persists</strong> — Skill remains essential; AI assists but humans own every output.</li>
-      <li><strong>Potential Drop</strong> — At risk; confirm whether meaningful human judgment is still required.</li>
-      <li><strong>Dropped</strong> — Confirmed automatable; redirect development investment.</li>
-      <li><strong>Foundational</strong> — Cross-cutting; prioritize regardless of AI adoption.</li>
+      <li><strong>Grows in value</strong> — A person stays central; invest in this skill.</li>
+      <li><strong>Still needed</strong> — Stays essential; AI helps, but a person owns the result.</li>
+      <li><strong>At risk</strong> — May fade; check whether real human judgment is still needed.</li>
+      <li><strong>No longer needed</strong> — AI can handle it; shift training elsewhere.</li>
+      <li><strong>Used everywhere</strong> — Cuts across the whole job; invest no matter what.</li>
     </ul>
   </div>
-  <div class="footer">AI Routing Workshop &nbsp;·&nbsp; Burning Glass Institute</div>
+  <div class="footer">Role Redesign &nbsp;·&nbsp; Burning Glass Institute</div>
   <div class="print-bar"><button class="btn-print" onclick="window.print()">Print / Save as PDF</button></div>
 </div>
 </body></html>`;

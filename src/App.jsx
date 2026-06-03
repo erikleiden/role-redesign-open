@@ -1,5 +1,6 @@
 import bgiLogo from './assets/BGILogo.png';
 import { useWorkshop } from './workshop/state.jsx';
+import { BUCKETS } from './workshop/config.js';
 import IntroPhase from './components/IntroPhase.jsx';
 import SourcePhase from './components/SourcePhase.jsx';
 import ClusterPhase from './components/ClusterPhase.jsx';
@@ -8,8 +9,8 @@ import SkillSortPhase from './components/SkillSortPhase.jsx';
 
 const STEPS = [
   { key: 'source',  label: '1 · Role' },
-  { key: 'cluster', label: '2 · Cluster' },
-  { key: 'routing', label: '3 · Routing' },
+  { key: 'cluster', label: '2 · Tasks' },
+  { key: 'routing', label: '3 · AI Level' },
   { key: 'skills',  label: '4 · Skills' },
 ];
 
@@ -37,7 +38,7 @@ export default function App() {
             <img className="header-logo" src={bgiLogo} alt="Burning Glass Institute" />
           </a>
           <div className="header-titles">
-            <h1>Role Redesign — AI Routing Workshop</h1>
+            <h1>Role Redesign — Where AI Fits</h1>
             {role && phase !== 'source' && phase !== 'intro' && (
               <div id="role-badge">{role.name}</div>
             )}
@@ -49,7 +50,7 @@ export default function App() {
           )}
           {(phase === 'routing' || phase === 'skills') && (
             <button className="hdr-btn" onClick={() => dispatch({ type: 'TOGGLE_DEFS' })}>
-              Definitions {defsOpen ? '▴' : '▾'}
+              What the levels mean {defsOpen ? '▴' : '▾'}
             </button>
           )}
           {inApp && (
@@ -78,14 +79,12 @@ export default function App() {
 
       {defsOpen && (phase === 'routing' || phase === 'skills') && (
         <div id="defs-panel">
-          <div className="def-item"><div className="def-swatch" style={{ background: '#7B2020' }} />
-            <div className="def-label"><strong>Human-Led</strong><span>Human does the work; AI may assist in prep only</span></div></div>
-          <div className="def-item"><div className="def-swatch" style={{ background: '#B85520' }} />
-            <div className="def-label"><strong>Human-in-the-Loop (HITL)</strong><span>AI drafts or processes; human reviews every output</span></div></div>
-          <div className="def-item"><div className="def-swatch" style={{ background: '#9B7200' }} />
-            <div className="def-label"><strong>Human-on-the-Loop (HOTL)</strong><span>AI operates; human monitors and intervenes when needed</span></div></div>
-          <div className="def-item"><div className="def-swatch" style={{ background: '#4a4a4a' }} />
-            <div className="def-label"><strong>Full Auto</strong><span>AI handles end-to-end; periodic human spot-check only</span></div></div>
+          {['hl', 'hitl', 'hotl', 'auto'].map((k) => (
+            <div className="def-item" key={k}>
+              <div className="def-swatch" style={{ background: BUCKETS[k].color }} />
+              <div className="def-label"><strong>{BUCKETS[k].label}</strong><span>{BUCKETS[k].desc}</span></div>
+            </div>
+          ))}
         </div>
       )}
 

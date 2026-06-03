@@ -27,11 +27,11 @@ export default function ClusterPhase() {
   // they are simply excluded from routing (see advisory note below).
   const validation = useMemo(() => {
     const issues = [];
-    if (clusters.length < 2) issues.push('Create at least 2 clusters.');
+    if (clusters.length < 2) issues.push('Make at least 2 groups.');
     const empties = clusters.filter((c) => c.tasks.length === 0);
-    if (empties.length) issues.push(`${empties.length} cluster${empties.length > 1 ? 's have' : ' has'} no tasks.`);
+    if (empties.length) issues.push(`${empties.length} group${empties.length > 1 ? 's have' : ' has'} no tasks.`);
     const unnamed = clusters.filter((c) => !c.label.trim());
-    if (unnamed.length) issues.push(`Name every cluster (${unnamed.length} unnamed).`);
+    if (unnamed.length) issues.push(`Give every group a name (${unnamed.length} still blank).`);
     return issues;
   }, [clusters]);
 
@@ -45,7 +45,7 @@ export default function ClusterPhase() {
   const settings = state.clusterSettings;
   function changeSettings(patch) {
     if (state.clusterEdited &&
-        !window.confirm('Re-suggesting rebuilds the clusters from O*NET. Your renames, moves, and added clusters will be reset (deleted tasks stay removed). Continue?')) return;
+        !window.confirm('This will rebuild the groups from scratch. Your renames, moves, and added groups will be reset (deleted tasks stay deleted). Continue?')) return;
     dispatch({ type: 'SET_CLUSTER_SETTINGS', patch });
   }
   const counts = isOnet ? taskCounts(state.taskCatalog, settings, state.removedTaskIds) : null;
@@ -56,43 +56,43 @@ export default function ClusterPhase() {
     <div>
       <div className="cluster-step-bar">
         <div className="csb-info">
-          <strong>Group tasks into clusters.</strong> Each cluster is routed through the framework as one unit of work.
+          <strong>Sort the tasks into groups.</strong> Each group gets one AI recommendation, so put similar work together.
           {state.role?.source === 'onet'
-            ? ' These suggested clusters come from O*NET work activities — rename, split, merge, move, or delete tasks as needed.'
-            : ' Create clusters and drag each task into the one where it fits.'}
-          {' '}Use the <X size={11} style={{ verticalAlign: '-1px' }} /> on a task to remove it; the trash icon deletes a cluster.
-          {' '}<span style={{ color: '#999' }}>{totalTasks} tasks · {clusters.length} clusters</span>
+            ? " We've grouped them for you as a starting point — rename, move, combine, or delete tasks however you like."
+            : ' Make a few groups and drag each task into the one where it fits.'}
+          {' '}Use the <X size={11} style={{ verticalAlign: '-1px' }} /> to remove a task; the trash icon deletes a group.
+          {' '}<span style={{ color: '#999' }}>{totalTasks} tasks · {clusters.length} groups</span>
         </div>
-        <button className="cluster-add-btn" onClick={() => dispatch({ type: 'ADD_CLUSTER' })}><Plus size={13} style={{ verticalAlign: '-2px' }} /> Add cluster</button>
+        <button className="cluster-add-btn" onClick={() => dispatch({ type: 'ADD_CLUSTER' })}><Plus size={13} style={{ verticalAlign: '-2px' }} /> Add group</button>
       </div>
 
       {isOnet && settings && (
         <div className="task-filter-bar">
           <label className="tf-check">
             <input type="checkbox" checked={settings.coreOnly} onChange={(e) => changeSettings({ coreOnly: e.target.checked })} />
-            Core tasks only
-            <span className="tf-help" title="Show only O*NET “Core” tasks — the central duties — and hide peripheral “Supplemental” ones.">ⓘ</span>
+            Main tasks only
+            <span className="tf-help" title="Show only the central tasks of the job and hide the occasional, peripheral ones.">ⓘ</span>
           </label>
           <div className="tf-seg-wrap">
-            <span className="tf-seg-label">Detail</span>
+            <span className="tf-seg-label">How many tasks</span>
             <div className="tf-seg">
               {DETAIL_OPTS.map((o) => (
                 <button key={o.key} className={settings.detail === o.key ? 'active' : ''} onClick={() => changeSettings({ detail: o.key })}>{o.label}</button>
               ))}
             </div>
-            <span className="tf-help" title="How many tasks to keep per cluster, ranked by importance × how often the task is performed. Few = top 3, Standard = top 6, All = every task.">ⓘ</span>
+            <span className="tf-help" title="How many tasks to keep in each group, ranked by how important and how frequent they are. Few = top 3, Standard = top 6, All = every task.">ⓘ</span>
           </div>
-          {counts && <span className="tf-count">showing {counts.shown} of {counts.available} O*NET tasks</span>}
+          {counts && <span className="tf-count">showing {counts.shown} of {counts.available} tasks</span>}
         </div>
       )}
 
       <div className="cl-pool-label">
-        Unclustered tasks {poolTasks.length === 0 ? '— all placed ✓' : `(${poolTasks.length})`}
-        {poolTasks.length > 0 && <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: '#b06a2a' }}> — these will be excluded from routing</span>}
+        Not in a group yet {poolTasks.length === 0 ? '— all sorted ✓' : `(${poolTasks.length})`}
+        {poolTasks.length > 0 && <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: '#b06a2a' }}> — anything left here is skipped</span>}
       </div>
       <div className="cl-pool" data-zone="pool">
         {poolTasks.length === 0
-          ? <div className="empty-hint">All tasks have been placed into clusters. Drag one back here to set it aside (it won't be routed), or delete it.</div>
+          ? <div className="empty-hint">Every task is in a group. Drag one back here to set it aside (it'll be skipped), or delete it.</div>
           : poolTasks.map((t) => <TaskCard key={t.id} task={t} onDelete={() => dispatch({ type: 'DELETE_TASK', taskId: t.id })} />)}
       </div>
 
@@ -101,11 +101,11 @@ export default function ClusterPhase() {
           <div key={c.id} className="cluster-box">
             <div className="cluster-box-hdr">
               <input
-                placeholder="Cluster name…"
+                placeholder="Group name…"
                 value={c.label}
                 onChange={(e) => dispatch({ type: 'RENAME_CLUSTER', clusterId: c.id, label: e.target.value })}
               />
-              <button className="icon-btn" title="Delete cluster (tasks return to the pool)"
+              <button className="icon-btn" title="Delete this group (its tasks go back to the list)"
                 onClick={() => dispatch({ type: 'DELETE_CLUSTER', clusterId: c.id })}>
                 <Trash2 size={15} />
               </button>
@@ -124,7 +124,7 @@ export default function ClusterPhase() {
         <button className="btn btn-sec" onClick={() => dispatch({ type: 'SET_PHASE', phase: 'source' })}>← Back</button>
         <button className="btn btn-pri" onClick={proceed} disabled={validation.length > 0}
           title={validation.length ? validation.join(' ') : ''}>
-          Continue to Routing →
+          Next: set the AI level →
         </button>
       </div>
     </div>

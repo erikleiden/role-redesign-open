@@ -18,7 +18,7 @@ export default function RoutingPhase() {
   const totalQ = ROUTING_QUESTIONS.length;
 
   const isLast = idx === clusters.length - 1;
-  const nextLabel = isLast ? 'Proceed to Skill Sort →' : 'Next Cluster →';
+  const nextLabel = isLast ? 'Next: sort the skills →' : 'Next group →';
 
   function selectAnswer(qId, score) {
     dispatch({ type: 'SET_ANSWER', clusterId: cluster.id, qId, score });
@@ -50,7 +50,7 @@ export default function RoutingPhase() {
   return (
     <div>
       <div className="cluster-progress">
-        <div className="cp-label">Cluster {idx + 1} of {clusters.length}</div>
+        <div className="cp-label">Group {idx + 1} of {clusters.length}</div>
         <div className="cp-pips">
           {clusters.map((c, i) => (
             <div key={c.id} className={`cp-pip ${i < idx ? 'done' : i === idx ? 'active' : ''}`}>{i + 1}</div>
@@ -78,12 +78,12 @@ export default function RoutingPhase() {
       <div className="questions-wrap">
         <div className="dir-bar">
           <div className="dir-spacer" />
-          <div className="dir-text">← More human oversight &nbsp;·&nbsp; More AI autonomy →</div>
+          <div className="dir-text">← A person does more &nbsp;·&nbsp; AI does more →</div>
         </div>
         {floorLv > 0 && (
           <div className="ratchet-note">
-            <strong>Dimmed options</strong> can no longer change this cluster's routing — an earlier answer already set a
-            higher floor of human oversight. You can still change any answer.
+            <strong>Greyed-out options</strong> won't change the recommendation anymore — an earlier answer already means
+            this work needs more human involvement. You can still change any answer.
           </div>
         )}
         {rows.map((row) => {
@@ -132,17 +132,17 @@ export default function RoutingPhase() {
       </div>
 
       <div className="result-bar">
-        <span className="result-label-sm">Routing result:</span>
+        <span className="result-label-sm">Suggested level:</span>
         {nAnswered === 0 ? (
           <>
-            <span className="result-badge result-badge-empty">Not yet routed</span>
-            <span className="result-constraint">Answer the questions below to see this cluster's routing.</span>
+            <span className="result-badge result-badge-empty">Answer below</span>
+            <span className="result-constraint">Answer the questions below and a suggestion will appear here.</span>
           </>
         ) : (
           <>
             <span className="result-badge" style={{ background: BUCKETS[bucket].color }}>{BUCKETS[bucket].label}</span>
             <span className="result-constraint">
-              {sourceLabel ? <>Binding constraint: <strong>{sourceLabel}</strong></> : 'No overriding minimum — defaults to Full Auto.'}
+              {sourceLabel ? <>Main reason: <strong>{sourceLabel}</strong></> : 'Nothing here requires a person — this could be fully automated.'}
             </span>
             <span className={`answered-count${nAnswered === totalQ ? ' done' : ''}`}>
               {nAnswered === totalQ ? `✓ All ${totalQ} answered` : `${nAnswered} of ${totalQ} answered`}
@@ -152,7 +152,7 @@ export default function RoutingPhase() {
       </div>
 
       <div className="routing-nav">
-        <button className="btn btn-sec" onClick={prev} disabled={idx === 0}>← Previous</button>
+        <button className="btn btn-sec" onClick={prev} disabled={idx === 0}>← Back</button>
         <button className="btn btn-pri" onClick={next}>{nextLabel}</button>
       </div>
     </div>

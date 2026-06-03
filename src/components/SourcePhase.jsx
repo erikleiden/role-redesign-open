@@ -11,13 +11,13 @@ export default function SourcePhase() {
   return (
     <div className="panel">
       <div className="panel-hdr">
-        <h2>Choose a Role</h2>
-        <p>Pull a role's tasks &amp; skills from O*NET, or bring your own.</p>
+        <h2>Pick a Role</h2>
+        <p>Start with a built-in role (tasks and skills already filled in), or enter your own.</p>
       </div>
       <div className="panel-body">
         <div className="source-toggle">
-          <button className={tab === 'onet' ? 'active' : ''} onClick={() => setTab('onet')}>Search O*NET roles</button>
-          <button className={tab === 'custom' ? 'active' : ''} onClick={() => setTab('custom')}>Upload my own</button>
+          <button className={tab === 'onet' ? 'active' : ''} onClick={() => setTab('onet')}>Use a built-in role</button>
+          <button className={tab === 'custom' ? 'active' : ''} onClick={() => setTab('custom')}>Enter my own</button>
         </div>
         {tab === 'onet' ? <OnetSearch dispatch={dispatch} /> : <CustomUpload dispatch={dispatch} />}
       </div>
@@ -68,7 +68,7 @@ function OnetSearch({ dispatch }) {
   }
 
   if (error) return <div className="err-note">{error}</div>;
-  if (!index) return <div className="parse-note">Loading O*NET occupations…</div>;
+  if (!index) return <div className="parse-note">Loading roles…</div>;
 
   return (
     <>
@@ -176,7 +176,7 @@ function CustomUpload({ dispatch }) {
       </div>
       {error && <div className="err-note" style={{ marginTop: 14 }}>{error}</div>}
       <div className="routing-nav" style={{ marginTop: 18 }}>
-        <button className="btn btn-pri" onClick={proceed}>Continue to Clustering →</button>
+        <button className="btn btn-pri" onClick={proceed}>Next: group the tasks →</button>
       </div>
     </>
   );

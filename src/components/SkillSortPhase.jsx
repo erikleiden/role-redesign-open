@@ -6,11 +6,11 @@ import { skillFate, autoFateLabel } from '../workshop/logic.js';
 import { usePlaceable } from '../workshop/usePlaceable.js';
 import { downloadReport } from '../workshop/report.js';
 
-const FATE_SORT = { Dropped: 0, 'Potential Drop': 1, Persists: 2, Foundational: 2.5, Deepens: 3, 'New Skill': 4, Unassigned: 5 };
+const FATE_SORT = { 'No longer needed': 0, 'At risk': 1, 'Still needed': 2, 'Used everywhere': 2.5, 'Grows in value': 3, 'New skill': 4, 'Not sorted yet': 5 };
 const CHANGE_ICON = {
-  Deepens: { c: '#1A2A4A', s: '↑' }, Persists: { c: '#B85520', s: '→' },
-  'Potential Drop': { c: '#9B7200', s: '↓' }, Dropped: { c: '#7B2020', s: '✕' },
-  'New Skill': { c: '#2C6E8A', s: '+' }, Foundational: { c: '#3D5A6B', s: '◆' }, Unassigned: { c: '#ccc', s: '·' },
+  'Grows in value': { c: '#1A2A4A', s: '↑' }, 'Still needed': { c: '#B85520', s: '→' },
+  'At risk': { c: '#9B7200', s: '↓' }, 'No longer needed': { c: '#7B2020', s: '✕' },
+  'New skill': { c: '#2C6E8A', s: '+' }, 'Used everywhere': { c: '#3D5A6B', s: '◆' }, 'Not sorted yet': { c: '#ccc', s: '·' },
 };
 
 export default function SkillSortPhase() {
@@ -50,15 +50,15 @@ export default function SkillSortPhase() {
   return (
     <div>
       <div className="ss-header">
-        <h2>Skill Sort — {state.role?.name}</h2>
-        <p>Drag each skill into the cluster where it matters most — or tap a skill, then tap a cluster. For HOTL and Full Auto clusters, confirm which skills can be dropped.</p>
-        <button className="btn-back" onClick={() => { dispatch({ type: 'SET_CLUSTER_IDX', idx: clusters.length - 1 }); dispatch({ type: 'SET_PHASE', phase: 'routing' }); }}>← Back to Routing</button>
+        <h2>Sort the Skills — {state.role?.name}</h2>
+        <p>Drag each skill into the group of work where it matters most — or tap a skill, then tap a group. Where AI does most of the work, you can mark skills that are no longer needed.</p>
+        <button className="btn-back" onClick={() => { dispatch({ type: 'SET_CLUSTER_IDX', idx: clusters.length - 1 }); dispatch({ type: 'SET_PHASE', phase: 'routing' }); }}>← Back</button>
       </div>
 
-      <div className="ss-pool-label">Skill Pool <span className="sub">— drag or tap pills into clusters below</span></div>
+      <div className="ss-pool-label">All skills <span className="sub">— drag or tap each one into a group below</span></div>
       <div id="pool-drop-zone" data-zone="pool">
         {poolSkills.length === 0 && poolGaps.length === 0
-          ? <div className="pool-placeholder">All skills placed</div>
+          ? <div className="pool-placeholder">All skills sorted</div>
           : <>
               {poolSkills.map((s) => <Pill key={s.name} name={s.name} cat={s.cat} def={defMap[s.name]} dropped={!!drops[s.name]} />)}
               {poolGaps.map((ns) => <Pill key={ns.id} name={ns.name} gap dropped={!!drops[ns.name]} />)}
@@ -73,7 +73,7 @@ export default function SkillSortPhase() {
         </div>
       )}
 
-      <div className="seq-bar">Most human oversight <div className="seq-line" /> Full Auto</div>
+      <div className="seq-bar">Most human involvement <div className="seq-line" /> Fully automated</div>
 
       <div id="ss-columns" style={{ gridTemplateColumns: `repeat(${sortedClusters.length}, 1fr)` }}>
         {sortedClusters.map((c) => {
@@ -81,7 +81,7 @@ export default function SkillSortPhase() {
           const bkt = BUCKETS[bucket];
           const placed = sortedSkills.filter((s) => placementOf(s.name) === c.id);
           const gaps = newSkills.filter((ns) => ns.clusterId === c.id);
-          const fateText = bucket === 'hl' ? 'Skills here: Deepen' : bucket === 'hitl' ? 'Skills here: Persist' : 'Skills here: Potential Drop';
+          const fateText = bucket === 'hl' ? 'Skills here grow in value' : bucket === 'hitl' ? 'Skills here stay needed' : 'Skills here may fade';
           return (
             <div key={c.id} className="cluster-col">
               <div className="cluster-col-header" style={{ background: bkt.color }}>
@@ -105,12 +105,12 @@ export default function SkillSortPhase() {
 
       <div className="transversal-zone">
         <div className="transversal-zone-hdr">
-          <h3>Foundational / Transversal</h3>
-          <span>Cross-cutting skills that apply across all clusters — prioritize regardless of AI adoption</span>
+          <h3>Used across all groups</h3>
+          <span>Skills that matter no matter how the work is split — worth investing in either way</span>
         </div>
         <div className="transversal-drop-zone" data-zone="transversal">
           {transversalSkills.length === 0 && transversalGaps.length === 0
-            ? <div className="empty-hint">Drop cross-cutting skills here</div>
+            ? <div className="empty-hint">Drop skills used everywhere here</div>
             : <>
                 {transversalSkills.map((s) => <Pill key={s.name} name={s.name} cat={s.cat} def={defMap[s.name]} dropped={!!drops[s.name]} />)}
                 {transversalGaps.map((ns) => <Pill key={ns.id} name={ns.name} gap dropped={!!drops[ns.name]} />)}
@@ -127,7 +127,7 @@ export default function SkillSortPhase() {
 
       <div className="export-row">
         <button className="btn-export" onClick={() => downloadReport(state, results, constraints)}>
-          <Download size={15} /> Download Report
+          <Download size={15} /> Download summary
         </button>
       </div>
     </div>
@@ -143,8 +143,8 @@ function Pill({ name, cat, def, gap, bucket, dropped, onDrop }) {
       <span style={{ flex: 1 }}>{name}</span>
       {needsConfirm && (
         <span className="pill-drop-confirm">
-          <input type="checkbox" checked={!!dropped} onChange={(e) => onDrop?.(e.target.checked)} title="Confirm this skill can be dropped" />
-          <label onClick={(e) => { e.preventDefault(); onDrop?.(!dropped); }}>Drop</label>
+          <input type="checkbox" checked={!!dropped} onChange={(e) => onDrop?.(e.target.checked)} title="Mark this skill as no longer needed" />
+          <label onClick={(e) => { e.preventDefault(); onDrop?.(!dropped); }}>Not needed</label>
         </span>
       )}
     </div>
@@ -162,7 +162,7 @@ function GapAdder({ tip, onAdd }) {
   return (
     <div className="gap-wrap" title={tip}>
       {!open
-        ? <button className="gap-btn" onClick={() => setOpen(true)}>+ Add gap skill</button>
+        ? <button className="gap-btn" onClick={() => setOpen(true)}>+ Add a missing skill</button>
         : <div className="gap-input-wrap">
             <input autoFocus placeholder="Skill name…" value={text}
               onChange={(e) => setText(e.target.value)}
@@ -176,9 +176,9 @@ function GapAdder({ tip, onAdd }) {
 function SummaryTable({ allEntries, fateState, placements, drops, fateOverrides, onOverride, autoLabel, hasCategories }) {
   return (
     <div className="ss-summary">
-      <h3>Skill Fate Summary <span className="sub">— adjust a fate by clicking the badge</span></h3>
+      <h3>What happens to each skill <span className="sub">— click any outcome to change it</span></h3>
       <table className="summary-table">
-        <thead><tr><th>Skill</th>{hasCategories && <th>Category</th>}<th>Fate</th></tr></thead>
+        <thead><tr><th>Skill</th>{hasCategories && <th>Category</th>}<th>What happens</th></tr></thead>
         <tbody>
           {allEntries.map((s) => {
             const fate = skillFate(s.name, s.gap, fateState);
@@ -195,10 +195,10 @@ function SummaryTable({ allEntries, fateState, placements, drops, fateOverrides,
                     <select className={`fate-select ${selCls}`} value={isDropped ? 'dropped' : override}
                       onChange={(e) => onOverride(s.name, e.target.value)}>
                       <option value="">Suggested: {autoLabel(s.name)}</option>
-                      <option value="deepens">Deepens</option>
-                      <option value="persists">Persists</option>
-                      <option value="potential-drop">Potential Drop</option>
-                      <option value="dropped">Dropped</option>
+                      <option value="deepens">Grows in value</option>
+                      <option value="persists">Still needed</option>
+                      <option value="potential-drop">At risk</option>
+                      <option value="dropped">No longer needed</option>
                     </select>
                   ) : (
                     <span className={`tb-badge ${fate.cls}`}>{fate.label}</span>
@@ -222,41 +222,41 @@ function BeforeAfter({ allEntries, fateState, drops, hasCategories }) {
   const counts = { deepens: 0, persists: 0, foundational: 0, drop: 0, dropped: 0, new: 0, unassigned: 0 };
   for (const s of allEntries) {
     const f = skillFate(s.name, s.gap, fateState).label;
-    if (f === 'Deepens') counts.deepens++;
-    else if (f === 'Persists') counts.persists++;
-    else if (f === 'Foundational') counts.foundational++;
-    else if (f === 'Potential Drop') counts.drop++;
-    else if (f === 'Dropped') counts.dropped++;
-    else if (f === 'New Skill') counts.new++;
+    if (f === 'Grows in value') counts.deepens++;
+    else if (f === 'Still needed') counts.persists++;
+    else if (f === 'Used everywhere') counts.foundational++;
+    else if (f === 'At risk') counts.drop++;
+    else if (f === 'No longer needed') counts.dropped++;
+    else if (f === 'New skill') counts.new++;
     else counts.unassigned++;
   }
   const stats = [];
-  if (counts.deepens) stats.push(['deepens', `↑ ${counts.deepens} Deepening`]);
-  if (counts.foundational) stats.push(['foundational', `◆ ${counts.foundational} Foundational`]);
-  if (counts.persists) stats.push(['persists', `→ ${counts.persists} Persisting`]);
-  if (counts.drop) stats.push(['drop', `↓ ${counts.drop} At Risk`]);
-  if (counts.dropped) stats.push(['dropped', `✕ ${counts.dropped} Dropped`]);
-  if (counts.new) stats.push(['new', `+ ${counts.new} New`]);
-  if (counts.unassigned) stats.push(['unassigned', `· ${counts.unassigned} Unplaced`]);
+  if (counts.deepens) stats.push(['deepens', `↑ ${counts.deepens} growing in value`]);
+  if (counts.foundational) stats.push(['foundational', `◆ ${counts.foundational} used everywhere`]);
+  if (counts.persists) stats.push(['persists', `→ ${counts.persists} still needed`]);
+  if (counts.drop) stats.push(['drop', `↓ ${counts.drop} at risk`]);
+  if (counts.dropped) stats.push(['dropped', `✕ ${counts.dropped} no longer needed`]);
+  if (counts.new) stats.push(['new', `+ ${counts.new} new`]);
+  if (counts.unassigned) stats.push(['unassigned', `· ${counts.unassigned} not sorted`]);
 
   return (
     <div className="ba-section">
-      <h3>Before &amp; After AI Integration</h3>
+      <h3>Each skill: today vs. with AI</h3>
       <div className="ba-stats">
         {stats.length ? stats.map(([k, label]) => <span key={k} className={`ba-stat ${k}`}>{label}</span>)
-          : <span style={{ color: '#aaa', fontSize: 12 }}>Place skills into clusters to see the impact.</span>}
+          : <span style={{ color: '#aaa', fontSize: 12 }}>Sort skills into the groups above to see the impact.</span>}
       </div>
       <table className="ba-table">
-        <thead><tr><th>Skill</th>{hasCategories && <th>Category</th>}<th>Today (Pre-AI)</th><th style={{ width: 32, textAlign: 'center' }} /><th>After AI Integration</th></tr></thead>
+        <thead><tr><th>Skill</th>{hasCategories && <th>Category</th>}<th>Today</th><th style={{ width: 32, textAlign: 'center' }} /><th>With AI</th></tr></thead>
         <tbody>
           {sorted.map((s) => {
             const fate = skillFate(s.name, s.gap, fateState);
-            const ic = CHANGE_ICON[fate.label] || CHANGE_ICON.Unassigned;
+            const ic = CHANGE_ICON[fate.label] || CHANGE_ICON['Not sorted yet'];
             return (
               <tr key={s.name} className={drops[s.name] ? 'ba-dropped' : ''}>
-                <td><strong>{s.name}</strong>{s.gap && <><br /><em style={{ color: '#aaa', fontSize: 10.5 }}>gap skill</em></>}</td>
+                <td><strong>{s.name}</strong>{s.gap && <><br /><em style={{ color: '#aaa', fontSize: 10.5 }}>added skill</em></>}</td>
                 {hasCategories && <td style={{ color: '#888', fontSize: 11 }}>{s.cat}</td>}
-                <td>{s.gap ? <span style={{ color: '#bbb', fontSize: 12 }}>— (not yet in role)</span> : <span className="ba-badge-before">Present</span>}</td>
+                <td>{s.gap ? <span style={{ color: '#bbb', fontSize: 12 }}>— (not in role yet)</span> : <span className="ba-badge-before">In the role</span>}</td>
                 <td style={{ textAlign: 'center', width: 32 }}><span className="ba-change" style={{ color: ic.c }}>{ic.s}</span></td>
                 <td><span className={`tb-badge ${fate.cls}`}>{fate.label}</span></td>
               </tr>
