@@ -247,6 +247,7 @@ a{color:inherit}
 .cat-foundational{background:var(--foundational)}
 .cat-core{background:var(--core)}
 .cat-baseline{background:var(--baseline)}
+.cat-none{background:#5b6470}
 .cat-gap{background:#555;font-style:italic}
 .gap-wrap{position:relative;background:#F2F1EE;border-top:1px solid #E4E3DF;padding:8px 10px}
 .gap-btn{background:none;border:1px dashed #aaa;color:#888;font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer;width:100%}

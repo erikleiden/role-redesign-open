@@ -1,17 +1,7 @@
 import Papa from 'papaparse';
-import { CAT_ORDER } from './config.js';
 
-const [CAT_FOUNDATIONAL, CAT_CORE, CAT_BASELINE] = CAT_ORDER;
-
-export function normalizeCategory(raw) {
-  if (!raw) return CAT_CORE;
-  const s = String(raw).trim().toLowerCase();
-  if (!s) return CAT_CORE;
-  if (s.startsWith('found') || s.includes('leader')) return CAT_FOUNDATIONAL;
-  if (s.startsWith('base') || s.includes('applied') || s.includes('tech') || s.includes('software')) return CAT_BASELINE;
-  if (s.startsWith('core') || s.includes('role')) return CAT_CORE;
-  return CAT_CORE;
-}
+// Custom (employer) uploads do NOT use skill categories — they add friction and error with
+// no payoff, since fate is driven by placement, not category. Skills are just names here.
 
 function splitLines(text) {
   return String(text || '')
@@ -21,26 +11,21 @@ function splitLines(text) {
 }
 
 // Parse two pasted text blocks into the internal role model.
-// Skills lines may be "Skill" or "Skill, Category".
 export function parsePasted(roleName, tasksText, skillsText) {
-  const taskLines = splitLines(tasksText);
-  const skillLines = splitLines(skillsText);
-  const tasks = taskLines.map((text, i) => ({ id: 'ct_' + i, text }));
+  const tasks = splitLines(tasksText).map((text, i) => ({ id: 'ct_' + i, text }));
   const seen = new Set();
   const skills = [];
-  for (const line of skillLines) {
-    const parts = line.split(',');
-    const name = parts[0].trim();
+  for (const line of splitLines(skillsText)) {
+    // Be forgiving: if someone still types "Skill, Category", keep only the skill name.
+    const name = line.split(',')[0].trim();
     if (!name || seen.has(name.toLowerCase())) continue;
     seen.add(name.toLowerCase());
-    skills.push({ name, cat: normalizeCategory(parts[1]), def: '' });
+    skills.push({ name, def: '' });
   }
   return assembleCustomRole(roleName, tasks, skills);
 }
 
-// Parse an uploaded CSV (papaparse objects). Flexible columns:
-//   Task / Tasks  → task list
-//   Skill / Skills (+ optional Category) → skill list
+// Parse an uploaded CSV (flexible columns: Task / Tasks → tasks; Skill / Skills → skills).
 export function parseCsvText(roleName, csvText) {
   const { data } = Papa.parse(csvText, { header: true, skipEmptyLines: true });
   const tasks = [];
@@ -54,13 +39,12 @@ export function parseCsvText(roleName, csvText) {
   for (const row of data) {
     const tk = keyOf(row, ['task', 'tasks']);
     const sk = keyOf(row, ['skill', 'skills']);
-    const ck = keyOf(row, ['category', 'cat', 'skill category']);
     if (tk && row[tk] && row[tk].trim()) tasks.push({ id: 'ct_' + ti++, text: row[tk].trim() });
     if (sk && row[sk] && row[sk].trim()) {
       const name = row[sk].trim();
       if (!seen.has(name.toLowerCase())) {
         seen.add(name.toLowerCase());
-        skills.push({ name, cat: normalizeCategory(ck ? row[ck] : ''), def: '' });
+        skills.push({ name, def: '' });
       }
     }
   }
@@ -78,9 +62,9 @@ function assembleCustomRole(roleName, tasks, skills) {
 
 export function templateCsv() {
   return [
-    'Task,Skill,Category',
-    '"Review and approve expense reports","Financial Analysis","Core Role-Specific"',
-    '"Respond to customer inquiries by email","Written Communication","Foundational & Leadership"',
-    '"Reconcile monthly invoices in the accounting system","Microsoft Excel","Baseline Applied"',
+    'Task,Skill',
+    '"Review and approve expense reports","Financial Analysis"',
+    '"Respond to customer inquiries by email","Written Communication"',
+    '"Reconcile monthly invoices in the accounting system","Microsoft Excel"',
   ].join('\n');
 }

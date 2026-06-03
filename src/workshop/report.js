@@ -31,6 +31,7 @@ export function downloadReport(state, results, constraints) {
     </tr>`;
   }
 
+  const hasCategories = skills.some((s) => s.cat);
   const sortedSkills = [...skills].sort((a, b) => {
     const ai = CAT_ORDER.indexOf(a.cat); const bi = CAT_ORDER.indexOf(b.cat);
     return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
@@ -47,7 +48,7 @@ export function downloadReport(state, results, constraints) {
     const fm = FATE_META[fate.label] || FATE_META['Unassigned'];
     skillRows += `<tr${isDropped ? ' class="dropped-row"' : ''}>
       <td><strong>${esc(s.name)}</strong>${s.gap ? '<br><em style="color:#aaa;font-size:10.5px">gap skill</em>' : ''}</td>
-      <td style="color:#777;font-size:11.5px">${esc(s.cat)}</td>
+      ${hasCategories ? `<td style="color:#777;font-size:11.5px">${esc(s.cat)}</td>` : ''}
       <td style="white-space:nowrap"><span class="fate-badge" style="background:${fm.color}">${fate.label}</span></td>
       <td style="color:#555;font-size:11.5px">${fm.takeaway}</td>
     </tr>`;
@@ -100,7 +101,7 @@ export function downloadReport(state, results, constraints) {
 
   <h2>Skill Implications</h2>
   <table>
-    <thead><tr><th>Skill</th><th>Category</th><th>Fate</th><th>Takeaway</th></tr></thead>
+    <thead><tr><th>Skill</th>${hasCategories ? '<th>Category</th>' : ''}<th>Fate</th><th>Takeaway</th></tr></thead>
     <tbody>${skillRows}</tbody>
   </table>
 

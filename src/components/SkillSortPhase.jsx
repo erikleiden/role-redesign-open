@@ -33,6 +33,8 @@ export default function SkillSortPhase() {
   );
   const catRank = (cat) => { const i = CAT_ORDER.indexOf(cat); return i === -1 ? 99 : i; };
   const sortedSkills = useMemo(() => [...skills].sort((a, b) => catRank(a.cat) - catRank(b.cat)), [skills]);
+  // Custom roles have no skill categories — hide the legend and Category columns for them.
+  const hasCategories = useMemo(() => skills.some((s) => s.cat), [skills]);
 
   const placementOf = (name) => placements[name] || 'pool';
   const poolSkills = sortedSkills.filter((s) => placementOf(s.name) === 'pool');
@@ -63,11 +65,13 @@ export default function SkillSortPhase() {
             </>}
       </div>
 
-      <div className="cat-legend">
-        <span><span className="legend-dot" style={{ background: '#2C5F8A' }} />Foundational &amp; Leadership</span>
-        <span><span className="legend-dot" style={{ background: '#5A7A3A' }} />Core Role-Specific</span>
-        <span><span className="legend-dot" style={{ background: '#7A5A2A' }} />Baseline Applied</span>
-      </div>
+      {hasCategories && (
+        <div className="cat-legend">
+          <span><span className="legend-dot" style={{ background: '#2C5F8A' }} />Foundational &amp; Leadership</span>
+          <span><span className="legend-dot" style={{ background: '#5A7A3A' }} />Core Role-Specific</span>
+          <span><span className="legend-dot" style={{ background: '#7A5A2A' }} />Baseline Applied</span>
+        </div>
+      )}
 
       <div className="seq-bar">Most human oversight <div className="seq-line" /> Full Auto</div>
 
@@ -115,10 +119,11 @@ export default function SkillSortPhase() {
       </div>
 
       <SummaryTable allEntries={allEntries} fateState={fateState} placements={placements} drops={drops}
+        hasCategories={hasCategories}
         fateOverrides={fateOverrides} onOverride={(name, value) => dispatch({ type: 'SET_FATE_OVERRIDE', skill: name, value })}
         autoLabel={(name) => autoFateLabel(name, fateState)} />
 
-      <BeforeAfter allEntries={allEntries} fateState={fateState} drops={drops} />
+      <BeforeAfter allEntries={allEntries} fateState={fateState} drops={drops} hasCategories={hasCategories} />
 
       <div className="export-row">
         <button className="btn-export" onClick={() => downloadReport(state, results, constraints)}>
@@ -130,7 +135,7 @@ export default function SkillSortPhase() {
 }
 
 function Pill({ name, cat, def, gap, bucket, dropped, onDrop }) {
-  const catCls = gap ? 'cat-gap' : (CAT_CLASS[cat] || 'cat-baseline');
+  const catCls = gap ? 'cat-gap' : (cat ? (CAT_CLASS[cat] || 'cat-baseline') : 'cat-none');
   const needsConfirm = bucket === 'hotl' || bucket === 'auto';
   return (
     <div className={`skill-pill ${catCls}${gap ? ' gap-pill' : ''}${dropped ? ' dropped' : ''}`}
@@ -168,12 +173,12 @@ function GapAdder({ tip, onAdd }) {
   );
 }
 
-function SummaryTable({ allEntries, fateState, placements, drops, fateOverrides, onOverride, autoLabel }) {
+function SummaryTable({ allEntries, fateState, placements, drops, fateOverrides, onOverride, autoLabel, hasCategories }) {
   return (
     <div className="ss-summary">
       <h3>Skill Fate Summary <span className="sub">— adjust a fate by clicking the badge</span></h3>
       <table className="summary-table">
-        <thead><tr><th>Skill</th><th>Category</th><th>Fate</th></tr></thead>
+        <thead><tr><th>Skill</th>{hasCategories && <th>Category</th>}<th>Fate</th></tr></thead>
         <tbody>
           {allEntries.map((s) => {
             const fate = skillFate(s.name, s.gap, fateState);
@@ -184,7 +189,7 @@ function SummaryTable({ allEntries, fateState, placements, drops, fateOverrides,
             return (
               <tr key={s.name} className={isDropped ? 'skill-dropped' : ''}>
                 <td><strong>{s.name}</strong></td>
-                <td style={{ color: '#888', fontSize: 11 }}>{s.cat}</td>
+                {hasCategories && <td style={{ color: '#888', fontSize: 11 }}>{s.cat}</td>}
                 <td>
                   {isPlaced ? (
                     <select className={`fate-select ${selCls}`} value={isDropped ? 'dropped' : override}
@@ -208,7 +213,7 @@ function SummaryTable({ allEntries, fateState, placements, drops, fateOverrides,
   );
 }
 
-function BeforeAfter({ allEntries, fateState, drops }) {
+function BeforeAfter({ allEntries, fateState, drops, hasCategories }) {
   const sorted = [...allEntries].sort((a, b) => {
     const fa = skillFate(a.name, a.gap, fateState).label;
     const fb = skillFate(b.name, b.gap, fateState).label;
@@ -242,7 +247,7 @@ function BeforeAfter({ allEntries, fateState, drops }) {
           : <span style={{ color: '#aaa', fontSize: 12 }}>Place skills into clusters to see the impact.</span>}
       </div>
       <table className="ba-table">
-        <thead><tr><th>Skill</th><th>Category</th><th>Today (Pre-AI)</th><th style={{ width: 32, textAlign: 'center' }} /><th>After AI Integration</th></tr></thead>
+        <thead><tr><th>Skill</th>{hasCategories && <th>Category</th>}<th>Today (Pre-AI)</th><th style={{ width: 32, textAlign: 'center' }} /><th>After AI Integration</th></tr></thead>
         <tbody>
           {sorted.map((s) => {
             const fate = skillFate(s.name, s.gap, fateState);
@@ -250,7 +255,7 @@ function BeforeAfter({ allEntries, fateState, drops }) {
             return (
               <tr key={s.name} className={drops[s.name] ? 'ba-dropped' : ''}>
                 <td><strong>{s.name}</strong>{s.gap && <><br /><em style={{ color: '#aaa', fontSize: 10.5 }}>gap skill</em></>}</td>
-                <td style={{ color: '#888', fontSize: 11 }}>{s.cat}</td>
+                {hasCategories && <td style={{ color: '#888', fontSize: 11 }}>{s.cat}</td>}
                 <td>{s.gap ? <span style={{ color: '#bbb', fontSize: 12 }}>— (not yet in role)</span> : <span className="ba-badge-before">Present</span>}</td>
                 <td style={{ textAlign: 'center', width: 32 }}><span className="ba-change" style={{ color: ic.c }}>{ic.s}</span></td>
                 <td><span className={`tb-badge ${fate.cls}`}>{fate.label}</span></td>

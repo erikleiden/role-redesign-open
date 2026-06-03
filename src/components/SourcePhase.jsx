@@ -127,7 +127,7 @@ function CustomUpload({ dispatch }) {
       try {
         const parsed = parseCsvText(roleName || file.name.replace(/\.csv$/i, ''), String(reader.result));
         if (parsed.poolTasks.length) setTasksText(parsed.poolTasks.map((t) => t.text).join('\n'));
-        if (parsed.skills.length) setSkillsText(parsed.skills.map((s) => `${s.name}, ${s.cat}`).join('\n'));
+        if (parsed.skills.length) setSkillsText(parsed.skills.map((s) => s.name).join('\n'));
         if (!roleName) setRoleName(file.name.replace(/\.csv$/i, ''));
         setError('');
       } catch {
@@ -165,8 +165,8 @@ function CustomUpload({ dispatch }) {
         </div>
         <div className="upload-field">
           <label>Skills</label>
-          <div className="hint">One skill per line. Optionally add a category after a comma: Foundational &amp; Leadership, Core Role-Specific, or Baseline Applied.</div>
-          <textarea placeholder={'Financial Analysis, Core\nWritten Communication, Foundational\nMicrosoft Excel, Baseline'} value={skillsText} onChange={(e) => setSkillsText(e.target.value)} />
+          <div className="hint">One skill per line.</div>
+          <textarea placeholder={'Financial Analysis\nWritten Communication\nMicrosoft Excel'} value={skillsText} onChange={(e) => setSkillsText(e.target.value)} />
         </div>
       </div>
       <div className="upload-actions">

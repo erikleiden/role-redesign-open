@@ -55,8 +55,13 @@ export default function App() {
           {inApp && (
             <div className="phase-stepper">
               {STEPS.map((s, i) => {
-                const cls = s.key === phase ? 'active' : (curIdx > -1 && i < curIdx) ? 'done' : '';
-                const clickable = cls === 'done';
+                const reached = i <= state.maxStepIdx;
+                const isCurrent = s.key === phase;
+                const cls = isCurrent ? 'active' : reached ? 'done' : '';
+                // Freely navigate among reached working stages. "Role" (source) is a progress
+                // marker only — changing the role is done via the explicit "Change Role" button,
+                // so we never strand the user on the blank picker.
+                const clickable = reached && !isCurrent && s.key !== 'source';
                 return (
                   <div key={s.key}
                     className={`phase-pip ${cls}`}

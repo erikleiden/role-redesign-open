@@ -4,8 +4,12 @@ import { suggestClusters, DEFAULT_CLUSTER_SETTINGS } from './suggest.js';
 
 const STORAGE_KEY = 'role-redesign-open-state';
 
+// Stepper order (source is shown but not a revisitable destination — see App).
+export const STEP_IDX = { source: 0, cluster: 1, routing: 2, skills: 3 };
+
 const EMPTY = {
   phase: 'intro',                  // intro | source | cluster | routing | skills
+  maxStepIdx: 0,                   // furthest stepper stage reached (for non-destructive back/forward nav)
   role: null,                      // { name, soc?, source: 'onet'|'custom' }
   clusters: [],                    // [{ id, label, description, tasks:[{id,text}] }]
   poolTasks: [],                   // unclustered tasks during the cluster step: [{id,text}]
@@ -30,14 +34,14 @@ function reducer(state, action) {
       return { ...EMPTY, ...action.state };
 
     case 'SET_PHASE':
-      return { ...state, phase: action.phase };
+      return { ...state, phase: action.phase, maxStepIdx: Math.max(state.maxStepIdx, STEP_IDX[action.phase] ?? 0) };
 
     case 'TOGGLE_DEFS':
       return { ...state, defsOpen: !state.defsOpen };
 
     // Load a fresh role (from O*NET or custom upload). Resets all downstream work.
     case 'SET_ROLE': {
-      const base = { ...EMPTY, phase: 'cluster', role: action.role, skills: action.skills };
+      const base = { ...EMPTY, phase: 'cluster', maxStepIdx: STEP_IDX.cluster, role: action.role, skills: action.skills };
       if (action.taskCatalog) {
         // O*NET: build suggested clusters from the catalog using default filter settings.
         const settings = { ...DEFAULT_CLUSTER_SETTINGS };
@@ -170,7 +174,12 @@ export function WorkshopProvider({ children }) {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const saved = JSON.parse(raw);
-        if (saved && saved.role) return { ...init, ...saved };
+        if (saved && saved.role) {
+          const merged = { ...init, ...saved };
+          // Backfill nav progress for sessions saved before maxStepIdx existed.
+          merged.maxStepIdx = Math.max(merged.maxStepIdx || 0, STEP_IDX[saved.phase] ?? 0);
+          return merged;
+        }
       }
     } catch { /* ignore */ }
     return init;
