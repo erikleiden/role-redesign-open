@@ -5,8 +5,8 @@ import { usePlaceable } from '../workshop/usePlaceable.js';
 import { taskCounts } from '../workshop/suggest.js';
 
 const DETAIL_OPTS = [
-  { key: 'few', label: 'Few' },
-  { key: 'standard', label: 'Standard' },
+  { key: 'few', label: 'Top 3' },
+  { key: 'standard', label: 'Top 6' },
   { key: 'all', label: 'All' },
 ];
 
@@ -74,13 +74,13 @@ export default function ClusterPhase() {
             <span className="tf-help" title="Show only the central tasks of the job and hide the occasional, peripheral ones.">ⓘ</span>
           </label>
           <div className="tf-seg-wrap">
-            <span className="tf-seg-label">How many tasks</span>
+            <span className="tf-seg-label">Tasks per group</span>
             <div className="tf-seg">
               {DETAIL_OPTS.map((o) => (
                 <button key={o.key} className={settings.detail === o.key ? 'active' : ''} onClick={() => changeSettings({ detail: o.key })}>{o.label}</button>
               ))}
             </div>
-            <span className="tf-help" title="How many tasks to keep in each group, ranked by how important and how frequent they are. Few = top 3, Standard = top 6, All = every task.">ⓘ</span>
+            <span className="tf-help" title="Keeps the most important tasks in each group, ranked by how important and how often they're done. A group with fewer tasks than this simply shows all of them. ‘All’ shows every task.">ⓘ</span>
           </div>
           {counts && <span className="tf-count">showing {counts.shown} of {counts.available} tasks</span>}
         </div>

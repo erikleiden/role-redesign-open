@@ -157,15 +157,20 @@ function CustomUpload({ dispatch }) {
   return (
     <>
       <input className="role-name-input" placeholder="Role name (e.g. “Claims Adjuster”)" value={roleName} onChange={(e) => setRoleName(e.target.value)} />
+      <div className="parse-note">
+        <strong>Tasks vs. skills:</strong> a <strong>task</strong> is something the person <em>does</em> in the job
+        (e.g. “review insurance claims”). A <strong>skill</strong> is an ability or knowledge they <em>use</em> to do it
+        (e.g. “negotiation”, “attention to detail”).
+      </div>
       <div className="upload-grid">
         <div className="upload-field">
           <label>Tasks</label>
-          <div className="hint">One task per line.</div>
+          <div className="hint">What the person does — one activity per line.</div>
           <textarea placeholder={'Review and approve expense reports\nRespond to customer inquiries by email\nReconcile monthly invoices'} value={tasksText} onChange={(e) => setTasksText(e.target.value)} />
         </div>
         <div className="upload-field">
           <label>Skills</label>
-          <div className="hint">One skill per line.</div>
+          <div className="hint">What they use to do the work — one per line.</div>
           <textarea placeholder={'Financial Analysis\nWritten Communication\nMicrosoft Excel'} value={skillsText} onChange={(e) => setSkillsText(e.target.value)} />
         </div>
       </div>
