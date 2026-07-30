@@ -268,6 +268,24 @@ a{color:inherit}
 .summary-table tr:hover td,.ba-table tr:hover td{background:#fafaf9}
 .summary-table tr.skill-dropped td{opacity:.55;text-decoration:line-through}
 .summary-table tr.skill-dropped td:last-child{text-decoration:none}
+
+/* Add-a-task control (cluster step) */
+.task-adder{margin-top:2px}
+.task-add-link{background:none;border:1px dashed #bcbcbc;color:#8a8a8a;font-size:11px;padding:4px 9px;border-radius:5px;cursor:pointer;width:100%}
+.task-add-link:hover{border-color:#666;color:#444}
+.task-add-input{display:flex;gap:5px;align-items:center}
+.task-add-input input{flex:1;font-size:12px;padding:5px 8px;border:1px solid #ccc;border-radius:4px;min-width:0}
+.task-add-input button{font-size:11px;padding:5px 9px;border:none;border-radius:4px;cursor:pointer;background:var(--navy);color:#fff;white-space:nowrap}
+.task-add-input .ta-done{background:#eceae6;color:#555}
+
+/* Skill pill: remove-from-group control and multi-group marker */
+.pill-remove{background:rgba(255,255,255,.22);border:none;color:#fff;font-size:14px;line-height:1;width:17px;height:17px;border-radius:50%;cursor:pointer;flex-shrink:0;padding:0;display:flex;align-items:center;justify-content:center}
+.pill-remove:hover{background:rgba(255,255,255,.42)}
+.pill-multi{font-size:11px;opacity:.85;flex-shrink:0;margin-right:-2px}
+
+/* Transparency: the "why this outcome" column */
+.why-cell{color:#666;font-size:11px;line-height:1.35;max-width:340px}
+
 .ba-table tr.ba-dropped td{opacity:.45}
 .ba-table tr.ba-dropped td:last-child{opacity:1}
 .tb-badge{padding:2px 10px;border-radius:10px;color:#fff;font-size:11px;font-weight:700;white-space:nowrap}

@@ -18,7 +18,7 @@ export default function ClusterPhase() {
   usePlaceable({
     itemSelector: '.task-card',
     zoneSelector: '.cluster-box-zone, .cl-pool',
-    ignoreSelector: '.icon-btn, .task-del, .cluster-box-hdr input',
+    ignoreSelector: '.icon-btn, .task-del, .cluster-box-hdr input, .task-adder',
     onMove: (taskId, target) => dispatch({ type: 'MOVE_TASK', taskId, target }),
     hintText: () => 'Moving task — tap a cluster (or the pool) to drop it, or tap the task again to cancel.',
   });
@@ -57,9 +57,9 @@ export default function ClusterPhase() {
       <div className="cluster-step-bar">
         <div className="csb-info">
           <strong>Sort the tasks into groups.</strong> Each group gets one AI recommendation, so put similar work together.
-          {state.role?.source === 'onet'
-            ? " We've grouped them for you as a starting point — rename, move, combine, or delete tasks however you like."
-            : ' Make a few groups and drag each task into the one where it fits.'}
+          {state.role?.source === 'custom'
+            ? ' Make a few groups and drag each task into the one where it fits.'
+            : " We've grouped them for you as a starting point — rename, move, combine, add, or delete tasks however you like."}
           {' '}Use the <X size={11} style={{ verticalAlign: '-1px' }} /> to remove a task; the trash icon deletes a group.
           {' '}<span style={{ color: '#999' }}>{totalTasks} tasks · {clusters.length} groups</span>
         </div>
@@ -94,6 +94,7 @@ export default function ClusterPhase() {
         {poolTasks.length === 0
           ? <div className="empty-hint">Every task is in a group. Drag one back here to set it aside (it'll be skipped), or delete it.</div>
           : poolTasks.map((t) => <TaskCard key={t.id} task={t} onDelete={() => dispatch({ type: 'DELETE_TASK', taskId: t.id })} />)}
+        <TaskAdder placeholder="Add a task the list is missing…" onAdd={(text) => dispatch({ type: 'ADD_TASK', text, target: 'pool' })} />
       </div>
 
       <div className="cluster-cols" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))' }}>
@@ -114,6 +115,7 @@ export default function ClusterPhase() {
               {c.tasks.length === 0
                 ? <div className="empty-hint">Drop tasks here</div>
                 : c.tasks.map((t) => <TaskCard key={t.id} task={t} onDelete={() => dispatch({ type: 'DELETE_TASK', taskId: t.id })} />)}
+              <TaskAdder placeholder="Add a task to this group…" onAdd={(text) => dispatch({ type: 'ADD_TASK', text, target: c.id })} />
             </div>
           </div>
         ))}
@@ -127,6 +129,29 @@ export default function ClusterPhase() {
           Next: set the AI level →
         </button>
       </div>
+    </div>
+  );
+}
+
+function TaskAdder({ placeholder, onAdd }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  function commit() {
+    const v = text.trim();
+    if (!v) return;
+    onAdd(v); setText(''); // keep open so several tasks can be added in a row
+  }
+  return (
+    <div className="task-adder">
+      {!open
+        ? <button className="task-add-link" onClick={() => setOpen(true)}><Plus size={12} style={{ verticalAlign: '-2px' }} /> Add task</button>
+        : <div className="task-add-input">
+            <input autoFocus placeholder={placeholder} value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { setText(''); setOpen(false); } }} />
+            <button onClick={commit}>Add</button>
+            <button className="ta-done" onClick={() => { setText(''); setOpen(false); }}>Done</button>
+          </div>}
     </div>
   );
 }

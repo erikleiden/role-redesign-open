@@ -1,5 +1,5 @@
 import { createContext, useContext, useReducer, useEffect, useMemo } from 'react';
-import { computeResult } from './logic.js';
+import { computeResult, normalizePlacement } from './logic.js';
 import { suggestClusters, DEFAULT_CLUSTER_SETTINGS } from './suggest.js';
 
 const STORAGE_KEY = 'role-redesign-open-state';
@@ -21,7 +21,7 @@ const EMPTY = {
   clusterEdited: false,            // manual cluster edits made since last (re)suggest
   clusterIdx: 0,
   answers: {},                     // clusterId -> { q1:score, ... }
-  placements: {},                  // skillName -> clusterId | 'pool' | 'transversal'
+  placements: {},                  // skillName -> [clusterId, ...] | ['transversal']  ([] = unplaced)
   drops: {},                       // skillName -> true
   newSkills: [],                   // [{ name, clusterId, id }]
   fateOverrides: {},               // skillName -> 'deepens'|'persists'|'potential-drop'
@@ -82,6 +82,25 @@ function reducer(state, action) {
       };
     }
 
+    // Add a brand-new task the source data didn't include. Lands in the pool or a chosen group.
+    // For O*NET roles it's also written to the catalog (flagged userAdded) so re-suggest keeps it.
+    case 'ADD_TASK': {
+      const text = (action.text || '').trim();
+      if (!text) return state;
+      const id = 'utask_' + Date.now() + '_' + Math.floor(Math.random() * 1e4);
+      const task = { id, text };
+      const taskCatalog = state.taskCatalog?.length
+        ? [...state.taskCatalog, { id, text, userAdded: true, core: true, domain: 'wa-other', score: 0 }]
+        : state.taskCatalog;
+      if (!action.target || action.target === 'pool') {
+        return { ...state, clusterEdited: true, taskCatalog, poolTasks: [...state.poolTasks, task] };
+      }
+      return {
+        ...state, clusterEdited: true, taskCatalog,
+        clusters: state.clusters.map((c) => (c.id === action.target ? { ...c, tasks: [...c.tasks, task] } : c)),
+      };
+    }
+
     // Permanently remove a task from the role (pool or any cluster). Stays removed across re-suggest.
     case 'DELETE_TASK':
       return {
@@ -126,8 +145,25 @@ function reducer(state, action) {
       };
     }
 
-    case 'MOVE_SKILL':
-      return { ...state, placements: { ...state.placements, [action.skill]: action.target } };
+    // Place a skill. Dropping on a group ADDS it (a skill can live in several groups);
+    // dropping on the pool clears it; dropping on "used everywhere" makes it foundational (exclusive).
+    case 'MOVE_SKILL': {
+      const cur = normalizePlacement(state.placements[action.skill]);
+      let next;
+      if (action.target === 'pool') next = [];
+      else if (action.target === 'transversal') next = ['transversal'];
+      else {
+        const base = cur.filter((x) => x !== 'transversal');
+        next = base.includes(action.target) ? base : [...base, action.target];
+      }
+      return { ...state, placements: { ...state.placements, [action.skill]: next } };
+    }
+
+    // Remove a skill from one specific group (the × on a placed pill).
+    case 'UNPLACE_SKILL': {
+      const next = normalizePlacement(state.placements[action.skill]).filter((x) => x !== action.target);
+      return { ...state, placements: { ...state.placements, [action.skill]: next } };
+    }
 
     case 'TOGGLE_DROP': {
       const drops = { ...state.drops };

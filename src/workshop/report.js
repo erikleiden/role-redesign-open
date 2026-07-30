@@ -54,9 +54,11 @@ export function downloadReport(state, results, constraints) {
     </tr>`;
   }
 
-  const sourceNote = state.role?.source === 'onet'
-    ? `Built-in role${state.role?.soc ? ` · O*NET ${esc(state.role.soc)}` : ''}`
-    : 'Your own tasks & skills';
+  const sourceNote = state.role?.source === 'skillsfirst'
+    ? 'Skills-First profile'
+    : state.role?.source === 'onet'
+      ? `Built-in role${state.role?.soc ? ` · O*NET ${esc(state.role.soc)}` : ''}`
+      : 'Your own tasks & skills';
 
   const html = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8">

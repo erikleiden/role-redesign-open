@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Download } from 'lucide-react';
 import { useWorkshop } from '../workshop/state.jsx';
 import { BUCKETS, CAT_CLASS, CAT_ORDER, LEVEL, GAP_TIPS } from '../workshop/config.js';
-import { skillFate, autoFateLabel } from '../workshop/logic.js';
+import { skillFate, autoFateLabel, fateExplanation, normalizePlacement } from '../workshop/logic.js';
 import { usePlaceable } from '../workshop/usePlaceable.js';
 import { downloadReport } from '../workshop/report.js';
 
@@ -22,9 +22,9 @@ export default function SkillSortPhase() {
   usePlaceable({
     itemSelector: '.skill-pill',
     zoneSelector: '.cluster-drop-zone, #pool-drop-zone, .transversal-drop-zone',
-    ignoreSelector: '.pill-drop-confirm, .fate-select',
+    ignoreSelector: '.pill-drop-confirm, .fate-select, .pill-remove',
     onMove: (skill, target) => dispatch({ type: 'MOVE_SKILL', skill, target }),
-    hintText: (name) => `Placing <strong>${name.replace(/</g, '')}</strong> — tap a cluster to drop it, or tap the skill again to cancel.`,
+    hintText: (name) => `Placing <strong>${name.replace(/</g, '')}</strong> — tap a group to add it there (you can add it to more than one), or tap the skill again to cancel.`,
   });
 
   const sortedClusters = useMemo(
@@ -36,9 +36,9 @@ export default function SkillSortPhase() {
   // Custom roles have no skill categories — hide the legend and Category columns for them.
   const hasCategories = useMemo(() => skills.some((s) => s.cat), [skills]);
 
-  const placementOf = (name) => placements[name] || 'pool';
-  const poolSkills = sortedSkills.filter((s) => placementOf(s.name) === 'pool');
-  const transversalSkills = sortedSkills.filter((s) => placementOf(s.name) === 'transversal');
+  const placedOf = (name) => normalizePlacement(placements[name]);
+  const poolSkills = sortedSkills.filter((s) => placedOf(s.name).length === 0);
+  const transversalSkills = sortedSkills.filter((s) => placedOf(s.name).includes('transversal'));
   const poolGaps = newSkills.filter((ns) => ns.clusterId === 'pool');
   const transversalGaps = newSkills.filter((ns) => ns.clusterId === 'transversal');
 
@@ -51,11 +51,11 @@ export default function SkillSortPhase() {
     <div>
       <div className="ss-header">
         <h2>Sort the Skills — {state.role?.name}</h2>
-        <p>Drag each skill into the group of work where it matters most — or tap a skill, then tap a group. Where AI does most of the work, you can mark skills that are no longer needed.</p>
+        <p>Drag each skill into the group(s) of work where it matters — or tap a skill, then tap a group. A skill can go in more than one group; its outcome is set by the group that most needs people. Where AI does most of the work, you can mark skills that are no longer needed.</p>
         <button className="btn-back" onClick={() => { dispatch({ type: 'SET_CLUSTER_IDX', idx: clusters.length - 1 }); dispatch({ type: 'SET_PHASE', phase: 'routing' }); }}>← Back</button>
       </div>
 
-      <div className="ss-pool-label">All skills <span className="sub">— drag or tap each one into a group below</span></div>
+      <div className="ss-pool-label">All skills <span className="sub">— drag or tap each one into one or more groups below</span></div>
       <div id="pool-drop-zone" data-zone="pool">
         {poolSkills.length === 0 && poolGaps.length === 0
           ? <div className="pool-placeholder">All skills sorted</div>
@@ -79,7 +79,7 @@ export default function SkillSortPhase() {
         {sortedClusters.map((c) => {
           const bucket = results[c.id] || 'auto';
           const bkt = BUCKETS[bucket];
-          const placed = sortedSkills.filter((s) => placementOf(s.name) === c.id);
+          const placed = sortedSkills.filter((s) => placedOf(s.name).includes(c.id));
           const gaps = newSkills.filter((ns) => ns.clusterId === c.id);
           const fateText = bucket === 'hl' ? 'Skills here: Deepen' : bucket === 'hitl' ? 'Skills here: Persist' : 'Skills here: Potential Drop';
           return (
@@ -93,7 +93,7 @@ export default function SkillSortPhase() {
                 {placed.length === 0 && gaps.length === 0
                   ? <div className="empty-hint">Drop skills here</div>
                   : <>
-                      {placed.map((s) => <Pill key={s.name} name={s.name} cat={s.cat} def={defMap[s.name]} bucket={bucket} dropped={!!drops[s.name]} onDrop={(ck) => dispatch({ type: 'TOGGLE_DROP', skill: s.name, checked: ck })} />)}
+                      {placed.map((s) => <Pill key={s.name} name={s.name} cat={s.cat} def={defMap[s.name]} bucket={bucket} dropped={!!drops[s.name]} multi={placedOf(s.name).length > 1} onRemove={() => dispatch({ type: 'UNPLACE_SKILL', skill: s.name, target: c.id })} onDrop={(ck) => dispatch({ type: 'TOGGLE_DROP', skill: s.name, checked: ck })} />)}
                       {gaps.map((ns) => <Pill key={ns.id} name={ns.name} gap bucket={bucket} dropped={!!drops[ns.name]} onDrop={(ck) => dispatch({ type: 'TOGGLE_DROP', skill: ns.name, checked: ck })} />)}
                     </>}
               </div>
@@ -121,7 +121,8 @@ export default function SkillSortPhase() {
       <SummaryTable allEntries={allEntries} fateState={fateState} placements={placements} drops={drops}
         hasCategories={hasCategories}
         fateOverrides={fateOverrides} onOverride={(name, value) => dispatch({ type: 'SET_FATE_OVERRIDE', skill: name, value })}
-        autoLabel={(name) => autoFateLabel(name, fateState)} />
+        autoLabel={(name) => autoFateLabel(name, fateState)}
+        explain={(name, gap) => fateExplanation(name, gap, fateState, { clusters, constraints })} />
 
       <BeforeAfter allEntries={allEntries} fateState={fateState} drops={drops} hasCategories={hasCategories} />
 
@@ -134,18 +135,22 @@ export default function SkillSortPhase() {
   );
 }
 
-function Pill({ name, cat, def, gap, bucket, dropped, onDrop }) {
+function Pill({ name, cat, def, gap, bucket, dropped, onDrop, onRemove, multi }) {
   const catCls = gap ? 'cat-gap' : (cat ? (CAT_CLASS[cat] || 'cat-baseline') : 'cat-none');
   const needsConfirm = bucket === 'hotl' || bucket === 'auto';
   return (
     <div className={`skill-pill ${catCls}${gap ? ' gap-pill' : ''}${dropped ? ' dropped' : ''}`}
-      draggable data-item={name} title={def || ''}>
+      draggable data-item={name} title={multi ? `${name} — also in other groups` : (def || '')}>
+      {multi && <span className="pill-multi" title="This skill is in more than one group">⧉</span>}
       <span style={{ flex: 1 }}>{name}</span>
       {needsConfirm && (
         <span className="pill-drop-confirm">
           <input type="checkbox" checked={!!dropped} onChange={(e) => onDrop?.(e.target.checked)} title="Confirm this skill can be dropped" />
           <label onClick={(e) => { e.preventDefault(); onDrop?.(!dropped); }}>Drop</label>
         </span>
+      )}
+      {onRemove && (
+        <button className="pill-remove" title="Remove from this group" onClick={(e) => { e.stopPropagation(); onRemove(); }}>×</button>
       )}
     </div>
   );
@@ -173,17 +178,17 @@ function GapAdder({ tip, onAdd }) {
   );
 }
 
-function SummaryTable({ allEntries, fateState, placements, drops, fateOverrides, onOverride, autoLabel, hasCategories }) {
+function SummaryTable({ allEntries, fateState, placements, drops, fateOverrides, onOverride, autoLabel, explain, hasCategories }) {
   return (
     <div className="ss-summary">
-      <h3>What happens to each skill <span className="sub">— click any outcome to change it</span></h3>
+      <h3>What happens to each skill <span className="sub">— the “Why” column shows what drove each suggestion; click any outcome to change it</span></h3>
       <table className="summary-table">
-        <thead><tr><th>Skill</th>{hasCategories && <th>Category</th>}<th>What happens</th></tr></thead>
+        <thead><tr><th>Skill</th>{hasCategories && <th>Category</th>}<th>What happens</th><th>Why this outcome</th></tr></thead>
         <tbody>
           {allEntries.map((s) => {
             const fate = skillFate(s.name, s.gap, fateState);
             const isDropped = drops[s.name];
-            const isPlaced = !s.gap && placements[s.name] && placements[s.name] !== 'pool';
+            const isPlaced = !s.gap && normalizePlacement(placements[s.name]).length > 0;
             const override = fateOverrides[s.name] || '';
             const selCls = 'sel-' + fate.cls.replace('fate-', '');
             return (
@@ -204,6 +209,7 @@ function SummaryTable({ allEntries, fateState, placements, drops, fateOverrides,
                     <span className={`tb-badge ${fate.cls}`}>{fate.label}</span>
                   )}
                 </td>
+                <td className="why-cell">{explain(s.name, s.gap)}</td>
               </tr>
             );
           })}

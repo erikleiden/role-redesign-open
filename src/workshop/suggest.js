@@ -19,7 +19,10 @@ export function suggestClusters(catalog, settings, removedIds = []) {
   const removed = new Set(removedIds);
   const n = DETAIL_N[settings?.detail] ?? DETAIL_N.standard;
   const avail = (catalog || []).filter((t) => !removed.has(t.id));
-  const inScope = settings?.coreOnly ? avail.filter((t) => t.core) : avail;
+  // User-added tasks aren't part of the domain model — keep them in the pool so a
+  // filter change (which rebuilds the suggested groups) never silently drops them.
+  const userTasks = avail.filter((t) => t.userAdded).map((t) => ({ id: t.id, text: t.text }));
+  const inScope = (settings?.coreOnly ? avail.filter((t) => t.core) : avail).filter((t) => !t.userAdded);
 
   const byDom = new Map();
   for (const t of inScope) {
@@ -36,7 +39,7 @@ export function suggestClusters(catalog, settings, removedIds = []) {
     const kept = arr.slice(0, n).map((t) => ({ id: t.id, text: t.text }));
     clusters.push({ id: dom.id, label: dom.label, description: '', tasks: kept });
   }
-  return { clusters, poolTasks: [] };
+  return { clusters, poolTasks: userTasks };
 }
 
 // How many catalog tasks are currently shown vs available (for the "showing X of Y" hint).

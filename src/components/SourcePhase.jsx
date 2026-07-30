@@ -3,25 +3,86 @@ import { Search, Upload, FileDown } from 'lucide-react';
 import { useWorkshop } from '../workshop/state.jsx';
 import { loadOnetIndex, loadOnetRole } from '../workshop/onet.js';
 import { parsePasted, parseCsvText, templateCsv } from '../workshop/parseUpload.js';
+import { skillsFirstCategories, loadSkillsFirstRole } from '../workshop/skillsFirst.js';
 
 export default function SourcePhase() {
   const { dispatch } = useWorkshop();
-  const [tab, setTab] = useState('onet');
+  const [tab, setTab] = useState('skillsfirst');
 
   return (
     <div className="panel">
       <div className="panel-hdr">
         <h2>Pick a Role</h2>
-        <p>Start with a built-in role (tasks and skills already filled in), or enter your own.</p>
+        <p>Start with one of our 30 Skills-First profiles, pull any O*NET occupation, or upload your own tasks and skills.</p>
       </div>
       <div className="panel-body">
         <div className="source-toggle">
-          <button className={tab === 'onet' ? 'active' : ''} onClick={() => setTab('onet')}>Use a built-in role</button>
-          <button className={tab === 'custom' ? 'active' : ''} onClick={() => setTab('custom')}>Enter my own</button>
+          <button className={tab === 'skillsfirst' ? 'active' : ''} onClick={() => setTab('skillsfirst')}>Skills-First profile</button>
+          <button className={tab === 'onet' ? 'active' : ''} onClick={() => setTab('onet')}>O*NET occupation</button>
+          <button className={tab === 'custom' ? 'active' : ''} onClick={() => setTab('custom')}>Upload your own</button>
         </div>
-        {tab === 'onet' ? <OnetSearch dispatch={dispatch} /> : <CustomUpload dispatch={dispatch} />}
+        {tab === 'skillsfirst'
+          ? <SkillsFirstPicker dispatch={dispatch} />
+          : tab === 'onet'
+            ? <OnetSearch dispatch={dispatch} />
+            : <CustomUpload dispatch={dispatch} />}
       </div>
     </div>
+  );
+}
+
+function SkillsFirstPicker({ dispatch }) {
+  const cats = useMemo(() => skillsFirstCategories(), []);
+  const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(null);
+
+  const groups = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return cats
+      .map((c) => ({ ...c, roles: q ? c.roles.filter((r) => r.name.toLowerCase().includes(q)) : c.roles }))
+      .filter((c) => c.roles.length > 0);
+  }, [cats, query]);
+
+  const total = useMemo(() => cats.reduce((s, c) => s + c.roles.length, 0), [cats]);
+
+  function pick(name) {
+    setLoading(name);
+    try { dispatch({ type: 'SET_ROLE', ...loadSkillsFirstRole(name) }); }
+    catch { setLoading(null); }
+  }
+
+  return (
+    <>
+      <div className="parse-note">
+        These 30 roles come <strong>pre-grouped</strong> with curated tasks and skills. Pick one and you'll go straight to reviewing its task groups.
+      </div>
+      <div className="search-row">
+        <Search size={16} className="search-icon" />
+        <input
+          autoFocus
+          placeholder={`Search the ${total} Skills-First profiles — e.g. “financial analyst”, “software developer”`}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </div>
+      <div className="role-results">
+        {groups.length === 0 && <div className="no-match">No profiles match “{query}”. Try a different term.</div>}
+        {groups.map((c) => (
+          <div key={c.key}>
+            <div className="role-family-label">{c.label}</div>
+            {c.roles.map((r) => (
+              <div key={r.name} className="role-row" onClick={() => pick(r.name)}>
+                <div>
+                  <div className="rr-name">{r.icon ? r.icon + ' ' : ''}{r.name}{loading === r.name ? ' — loading…' : ''}</div>
+                  {r.workers && <div className="rr-alt">{r.workers}</div>}
+                </div>
+                <div className="rr-soc">Skills-First</div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 
